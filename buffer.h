@@ -4,6 +4,7 @@
 #include <string>
 #include "structures.h"
 #include <deque>
+#include <ostream>
 
 // stores and operates on buffer
 class Buffer {
@@ -21,6 +22,8 @@ public:
     char *get_buffer();
 
     virtual void reset() = 0;
+
+    friend std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
 
 protected:
     uint8_t buffer[MAX_UDP_LENGTH];

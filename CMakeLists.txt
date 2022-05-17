@@ -20,7 +20,7 @@ set(SOURCE_FILES
         game_state.h
         connections.cpp
         connections.h
-        client.cpp client.h)
+        )
 
 
 add_executable(robots-client ${SOURCE_FILES})

@@ -19,14 +19,14 @@ int main(int argc, char *argv[]) {
     ClientParameters p{argc, argv};
 
     boost::asio::io_context io_context;
-    GUI_connection gui_server(io_context, p.get_gui_address(), p.get_port());
-
-
-//    OutputBuffer o;
-//    ClientMessages::Client_server_message_variant msg = ClientMessages::JoinMessage{std::string("hejka")};
-//    o.write_client_to_server_message(msg);
-//    gui_server.send(o);
-
+    Client client(io_context, p);
+//    GUIConnection gui_server(io_context, p.get_gui_address(), p.get_port());
+//
+//
+////    OutputBuffer o;
+////    o.write_client_to_server_message(msg);
+////    gui_server.send(o);
+//
     io_context.run();
 
     return 0;

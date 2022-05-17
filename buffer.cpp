@@ -16,6 +16,14 @@ char *Buffer::get_buffer() {
     return (char *) buffer;
 }
 
+std::ostream &operator<<(std::ostream &os, const Buffer &buffer) {
+    uint8_t *buf = (uint8_t *) buffer.buffer;
+    for (int i = 0; i < buffer.size_; i++) {
+        os << (uint32_t) buf[i] << " ";
+    }
+    return os;
+}
+
 void InputBuffer::reset() {
     read_index = 0;
 }
@@ -37,18 +45,19 @@ GUIMessages::GUI_message_variant InputBuffer::read_GUI_message() {
             break;
         }
         default: {
-            throw std::bad_optional_access();
+            throw std::invalid_argument("bad gui message type");
         }
     }
 
     if (read_index != size_) {
-        throw std::bad_optional_access();
+        throw std::invalid_argument("gui message too big");
     }
 
     return result;
 }
 
 ServerMessage::Server_message_variant InputBuffer::read_server_message() {
+//    Logger::print_debug("Read server message buff size: ", size_, " buff read_index: ", read_index);
     reset();
     ServerMessage::Server_message_variant result;
     switch (read_uint8_t()) {
@@ -73,12 +82,13 @@ ServerMessage::Server_message_variant InputBuffer::read_server_message() {
             break;
         }
         default: {
-            throw std::bad_optional_access();
+            throw std::invalid_argument("bad server message type");
         }
     }
 
+//    Logger::print_debug("buff size: ", size_, " buff read_index: ", read_index);
     if (read_index != size_) {
-        throw std::bad_optional_access();
+        throw std::invalid_argument("too big server message size");
     }
 
     return result;
@@ -86,7 +96,7 @@ ServerMessage::Server_message_variant InputBuffer::read_server_message() {
 
 uint8_t InputBuffer::read_uint8_t() {
     if (read_index + sizeof(uint8_t) > size_) {
-        throw std::bad_optional_access();
+        throw std::invalid_argument("bad read_uint8_t");
     }
 
     uint8_t result = *(uint8_t *) (buffer + read_index);
@@ -96,7 +106,7 @@ uint8_t InputBuffer::read_uint8_t() {
 
 uint16_t InputBuffer::read_uint16_t() {
     if (read_index + sizeof(uint16_t) > size_) {
-        throw std::bad_optional_access();
+        throw std::invalid_argument("bad read_uint16_t");
     }
 
     uint16_t result = *(uint16_t *) (buffer + read_index);
@@ -106,7 +116,7 @@ uint16_t InputBuffer::read_uint16_t() {
 
 uint32_t InputBuffer::read_uint32_t() {
     if (read_index + sizeof(uint32_t) > size_) {
-        throw std::bad_optional_access();
+        throw std::invalid_argument("bad read_uint32_t");
     }
 
     uint32_t result = *(uint32_t *) (buffer + read_index);
@@ -116,7 +126,7 @@ uint32_t InputBuffer::read_uint32_t() {
 
 uint64_t InputBuffer::read_uint64_t() {
     if (read_index + sizeof(uint64_t) > size_) {
-        throw std::bad_optional_access();
+        throw std::invalid_argument("bad read_uint64_t");
     }
 
     uint64_t result = *(uint64_t *) (buffer + read_index);
@@ -125,13 +135,16 @@ uint64_t InputBuffer::read_uint64_t() {
 }
 
 std::string InputBuffer::read_string() {
-    auto str_length = read_uint8_t();
+//    Logger::print_debug("Read string size so buff size: ", size_, " buff read_index: ", read_index);
+    uint8_t str_length = read_uint8_t();
+//    Logger::print_debug("Read string with size: ", str_length, " buff size: ", size_, " buff read_index: ", read_index);
     if (read_index + str_length > size_) {
-        throw std::bad_optional_access();
+        throw std::invalid_argument("bad read_string");
     }
 
     char c_string[str_length];
     memcpy(c_string, buffer + read_index, str_length);
+    read_index += str_length;
     return std::string{c_string};
 }
 
@@ -192,7 +205,7 @@ ServerMessage::event_message_variant InputBuffer::read_event() {
             return read_block_placed_event();
         }
         default: {
-            throw std::bad_optional_access();
+            throw std::invalid_argument("bad event number");
         }
     }
 }
@@ -273,6 +286,7 @@ GUIMessages::PlaceBlockMessage InputBuffer::read_gui_place_block_message() {
 }
 
 ServerMessage::HelloMessage InputBuffer::read_server_hello_message() {
+//    Logger::print_debug("Read hello message buff size: ", size_, " buff read_index: ", read_index);
     std::string server_name = read_string();
     uint8_t players_count = read_uint8_t();
     uint16_t size_x = read_uint16_t();

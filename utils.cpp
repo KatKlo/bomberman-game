@@ -26,22 +26,22 @@ namespace Checker {
     }
 }
 
-namespace Utils {
-    uint64_t read_number(std::string &number_str, uint64_t min_limit,
-                         uint64_t max_limit, std::string &name) {
-        errno = 0;
-        char *end;
-
-        unsigned long number = strtoull(number_str.c_str(), &end, 10);
-
-        if (*end != '\0') {
-            errno = EINVAL;
-        }
-        Checker::check_errno();
-        if (number > max_limit || number < min_limit) {
-            Logger::print_error_and_exit(number, " is not a valid", name, " number");
-        }
-
-        return number;
-    }
-}
+//namespace Utils {
+//    uint64_t read_number(std::string &number_str, uint64_t min_limit,
+//                         uint64_t max_limit, std::string &name) {
+//        errno = 0;
+//        char *end;
+//
+//        unsigned long number = strtoull(number_str.c_str(), &end, 10);
+//
+//        if (*end != '\0') {
+//            errno = EINVAL;
+//        }
+//        Checker::check_errno();
+//        if (number > max_limit || number < min_limit) {
+//            Logger::print_error_and_exit(number, " is not a valid", name, " number");
+//        }
+//
+//        return number;
+//    }
+//}

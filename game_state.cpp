@@ -93,9 +93,9 @@ void GameInfo::handle_event(ServerMessage::event_message_variant &event) {
 //          dodać eksplozje :)
             bombs.erase(sth.id);
 //            nie chcemy tego robić dla każdej bomby:
-//            for (auto id : sth.robots_destroyed) {
-//                players[id].score++;
-//            }
+            for (auto id : sth.robots_destroyed) {
+                players[id].score++;
+            }
             for (auto &block : sth.blocks_destroyed) {
                 board[block.x][block.y] = PositionType::Explosion;
             }
@@ -118,4 +118,8 @@ void GameInfo::insert_players(std::unordered_map<player_id_t, Player> &playerss)
         players.emplace(it.first, PlayerInfo{it.second, Position{0, 0}, 0});
     }
 
+}
+
+bool GameInfo::is_in_lobby() {
+    return (state == GameState::Lobby);
 }

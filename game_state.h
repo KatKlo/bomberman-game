@@ -14,7 +14,12 @@ enum GameState {
 class GameInfo {
 public:
     GameInfo(ServerMessage::HelloMessage &msg);
+
+    GameInfo() = default;
+
     ClientMessages::Client_GUI_message_optional_variant handle_server_message(ServerMessage::Server_message_variant &msg);
+
+    bool is_in_lobby();
 
 private:
     GameBasicInfo basic_info;
