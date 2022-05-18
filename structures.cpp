@@ -20,9 +20,9 @@ std::ostream &operator<<(std::ostream &out, const Address &adr) {
     return out << adr.host << ":" << adr.port;
 }
 
-ClientMessages::LobbyMessage::LobbyMessage(GameBasicInfo &info, uint16_t explosionRadius, uint16_t bombTimer,
+ClientMessages::LobbyMessage::LobbyMessage(GameBasicInfo &info, uint8_t playersCount,uint16_t explosionRadius, uint16_t bombTimer,
                                            std::unordered_map<player_id_t, PlayerInfo> &p) : server_name(info.server_name),
-                                                                                             players_count(p.size()),
+                                                                                             players_count(playersCount),
                                                                                              size_x(info.size_x),
                                                                                              size_y(info.size_y),
                                                                                              game_length(info.game_length),

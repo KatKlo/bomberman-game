@@ -101,7 +101,7 @@ namespace ClientMessages {
     using Client_server_message_optional_variant = std::optional<Client_server_message_variant>;
 
     struct LobbyMessage {
-        LobbyMessage(GameBasicInfo &info,
+        LobbyMessage(GameBasicInfo &info, uint8_t playersCount,
                      uint16_t explosionRadius,
                      uint16_t bombTimer,
                      std::unordered_map<player_id_t, PlayerInfo> &p);

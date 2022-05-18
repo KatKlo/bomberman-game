@@ -172,12 +172,14 @@ void Client::handle_GUI_message(GUIMessages::GUI_message_variant &msg) {
 }
 
 void Client::handle_server_message(ServerMessage::Server_message_variant &msg) {
+    if (!gameInfo.has_value() && msg.index() == ServerMessage::HELLO) {
+        gameInfo = GameInfo(std::get<ServerMessage::HelloMessage>(msg), name);
+    }
+
     if (gameInfo.has_value()) {
         auto new_msg = gameInfo.value().handle_server_message(msg);
         if (new_msg.has_value()) {
             gui_connection->send(new_msg.value());
         }
-    } else if (msg.index() == ServerMessage::HELLO) {
-        gameInfo = GameInfo(std::get<ServerMessage::HelloMessage>(msg), name);
     }
 }

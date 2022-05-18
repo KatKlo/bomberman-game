@@ -4,6 +4,7 @@
 GameInfo::GameInfo(ServerMessage::HelloMessage &msg, std::string &player_name) :
         player_name_(player_name),
         basic_info{msg.server_name, msg.size_x, msg.size_y, msg.game_length},
+        players_count(msg.players_count),
         explosion_radius(msg.explosion_radius),
         bomb_timer(msg.bomb_timer),
         turn(0),
@@ -22,7 +23,7 @@ ClientMessages::Client_GUI_message_optional_variant
 GameInfo::handle_server_message(ServerMessage::Server_message_variant &msg) {
     switch (msg.index()) {
         case ServerMessage::HELLO:
-            return std::nullopt;
+            return generate_message();
         case ServerMessage::ACCEPTED_PLAYER :
             add_accepted_player(std::get<ServerMessage::AcceptedPlayerMessage>(msg));
             return generate_message();
@@ -47,7 +48,7 @@ ClientMessages::Client_GUI_message_optional_variant GameInfo::generate_message()
     if (!changed) {
         return std::nullopt;
     } else if (state == GameState::Lobby) {
-        return ClientMessages::LobbyMessage(basic_info, explosion_radius, bomb_timer, players);
+        return ClientMessages::LobbyMessage(basic_info, players_count, explosion_radius, bomb_timer, players);
     } else { // state == GameState::Game
         return ClientMessages::GameMessage(basic_info, turn, players, bombs, board);
     }

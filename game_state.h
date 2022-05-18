@@ -24,6 +24,7 @@ public:
 private:
     std::string player_name_;
     GameBasicInfo basic_info;
+    uint8_t players_count;
     uint16_t explosion_radius;
     uint16_t bomb_timer;
     uint16_t turn;

@@ -87,9 +87,9 @@ ServerMessage::Server_message_variant InputBuffer::read_server_message() {
     }
 
 //    Logger::print_debug("buff size: ", size_, " buff read_index: ", read_index);
-    if (read_index != size_) {
-        throw std::invalid_argument("too big server message size");
-    }
+//    if (read_index != size_) {
+//        throw std::invalid_argument("too big server message size");
+//    }
 
     return result;
 }
@@ -142,7 +142,8 @@ std::string InputBuffer::read_string() {
         throw std::invalid_argument("bad read_string");
     }
 
-    char c_string[str_length];
+    char c_string[str_length + 1];
+    c_string[str_length] = 0;
     memcpy(c_string, buffer + read_index, str_length);
     read_index += str_length;
     return std::string{c_string};
