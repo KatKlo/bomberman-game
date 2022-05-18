@@ -13,15 +13,16 @@ enum GameState {
 
 class GameInfo {
 public:
-    GameInfo(ServerMessage::HelloMessage &msg);
+    GameInfo(ServerMessage::HelloMessage &msg, std::string &player_name);
 
     GameInfo() = default;
 
     ClientMessages::Client_GUI_message_optional_variant handle_server_message(ServerMessage::Server_message_variant &msg);
-
+    ClientMessages::Client_server_message_optional_variant handle_GUI_message(GUIMessages::GUI_message_variant &msg);
     bool is_in_lobby();
 
 private:
+    std::string player_name_;
     GameBasicInfo basic_info;
     uint16_t explosion_radius;
     uint16_t bomb_timer;

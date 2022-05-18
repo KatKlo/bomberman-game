@@ -11,9 +11,9 @@ GUIConnection::GUIConnection(boost::asio::io_context &io_context, Address &&gui_
         : client_(client), socket(io_context, udp::endpoint(udp::v4(), port)) {
     Logger::print_debug("connecting to GUI server (", gui_address, ") on port ", port);
 
-//    boost::asio::ip::udp::resolver resolver(io_context);
-//    auto endpoints = resolver.resolve(gui_address.host, gui_address.port);
-//    boost::asio::connect(socket, endpoints);
+    boost::asio::ip::udp::resolver resolver(io_context);
+    auto endpoints = resolver.resolve(gui_address.host, gui_address.port);
+    boost::asio::connect(socket, endpoints);
 
     Logger::print_debug("GUI server connected");
 
@@ -33,9 +33,8 @@ void GUIConnection::send(ClientMessages::Client_GUI_message_variant &msg) {
 }
 
 void GUIConnection::do_read_message() {
-    socket.async_receive_from(
+    socket.async_receive(
             boost::asio::buffer(read_msg.get_buffer(), Buffer::MAX_UDP_LENGTH),
-            remote_endpoint_,
             [this](boost::system::error_code ec, std::size_t length) {
                 Logger::print_debug("GUI - do read ", length);
                 if (!ec) {
@@ -55,9 +54,8 @@ void GUIConnection::do_read_message() {
 }
 
 void GUIConnection::do_write() {
-    socket.async_send_to(
+    socket.async_send(
             boost::asio::buffer(write_msgs.front().get_buffer(), write_msgs.front().size()),
-            remote_endpoint_,
             [this](boost::system::error_code ec, std::size_t /*length*/) {
                 Logger::print_debug("GUI - do write:\n", write_msgs.front());
                 if (!ec) {
@@ -76,13 +74,16 @@ ServerConnection::ServerConnection(boost::asio::io_context &io_context, Address 
         : client_(client), socket(io_context) {
     Logger::print_debug("connecting to server (", server_address, ")");
 
+
     tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve(server_address.host, server_address.port);
-    do_connect(endpoints);
-//    boost::asio::connect(socket, endpoints);
-//    Logger::print_debug("server connected");
-//    Logger::print_debug("starting server reading");
-//    do_read_message();
+//    do_connect(endpoints);
+    boost::asio::connect(socket, endpoints);
+    Logger::print_debug("server connected");
+    boost::asio::ip::tcp::no_delay option(true);
+    socket.set_option(option);
+    Logger::print_debug("starting server reading");
+    do_read_message();
 }
 
 void ServerConnection::do_read_message() {
@@ -156,10 +157,6 @@ Client::Client(boost::asio::io_context &io_context, ClientParameters &parameters
 
     gameInfo = std::nullopt;
     name = parameters.get_player_name();
-//
-//    sleep(5);
-//    GUIMessages::GUI_message_variant msg = GUIMessages::PlaceBombMessage{};
-//    handle_GUI_message(msg);
 }
 
 void Client::handle_GUI_message(GUIMessages::GUI_message_variant &msg) {
@@ -167,31 +164,10 @@ void Client::handle_GUI_message(GUIMessages::GUI_message_variant &msg) {
         Logger::print_debug("no connection with server");
         return;
     }
-    if (gameInfo->is_in_lobby()) {
-        ClientMessages::Client_server_message_variant new_msg = ClientMessages::JoinMessage{name};
-        server_connection->send(new_msg);
-    } else {
-        switch (msg.index()) {
-            case GUIMessages::PLACE_BOMB : {
-                ClientMessages::Client_server_message_variant new_msg = ClientMessages::PlaceBombMessage{};
-                server_connection->send(new_msg);
-                break;
-            }
-            case GUIMessages::PLACE_BLOCK : {
-                ClientMessages::Client_server_message_variant new_msg = ClientMessages::PlaceBlockMessage{};
-                server_connection->send(new_msg);
-                break;
-            }
-            case GUIMessages::MOVE : {
-                auto sth = std::get<GUIMessages::MoveMessage>(msg);
-                ClientMessages::Client_server_message_variant new_msg = ClientMessages::MoveMessage{sth.direction};
-                server_connection->send(new_msg);
-                break;
-            }
-            default: {
-                Logger::print_error_and_exit("Internal problem with variant");
-            }
-        }
+
+    ClientMessages::Client_server_message_optional_variant new_msg = gameInfo.value().handle_GUI_message(msg);
+    if (new_msg.has_value()) {
+        server_connection->send(new_msg.value());
     }
 }
 
@@ -202,6 +178,6 @@ void Client::handle_server_message(ServerMessage::Server_message_variant &msg) {
             gui_connection->send(new_msg.value());
         }
     } else if (msg.index() == ServerMessage::HELLO) {
-        gameInfo = GameInfo(std::get<ServerMessage::HelloMessage>(msg));
+        gameInfo = GameInfo(std::get<ServerMessage::HelloMessage>(msg), name);
     }
 }
