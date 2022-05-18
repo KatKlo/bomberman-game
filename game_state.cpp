@@ -86,6 +86,7 @@ void GameInfo::handle_event(ServerMessage::event_message_variant &event) {
         case ServerMessage::BOMB_PLACED : {
             auto sth = std::get<ServerMessage::BombPlacedEvent>(event);
             bombs.emplace(sth.id, Bomb{sth.position, bomb_timer});
+            break;
         }
         case ServerMessage::BOMB_EXPLODED : {
             auto sth = std::get<ServerMessage::BombExplodedEvent>(event);
@@ -99,14 +100,17 @@ void GameInfo::handle_event(ServerMessage::event_message_variant &event) {
             for (auto &block : sth.blocks_destroyed) {
                 board[block.x][block.y] = PositionType::Explosion;
             }
+            break;
         }
         case ServerMessage::PLAYER_MOVED : {
             auto sth = std::get<ServerMessage::PlayerMovedEvent>(event);
             players[sth.id].position = sth.position;
+            break;
         }
         case ServerMessage::BLOCK_PLACED : {
             auto sth = std::get<ServerMessage::BlockPlacedEvent>(event);
             board[sth.position.x][sth.position.y] = PositionType::Block;
+            break;
         }
         default:
             Logger::print_error_and_exit("Internal problem with variant");

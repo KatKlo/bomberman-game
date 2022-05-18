@@ -124,15 +124,15 @@ uint32_t InputBuffer::read_uint32_t() {
     return be32toh(result);
 }
 
-uint64_t InputBuffer::read_uint64_t() {
-    if (read_index + sizeof(uint64_t) > size_) {
-        throw std::invalid_argument("bad read_uint64_t");
-    }
-
-    uint64_t result = *(uint64_t *) (buffer + read_index);
-    read_index += sizeof(uint64_t);
-    return be64toh(result);
-}
+//uint64_t InputBuffer::read_uint64_t() {
+//    if (read_index + sizeof(uint64_t) > size_) {
+//        throw std::invalid_argument("bad read_uint64_t");
+//    }
+//
+//    uint64_t result = *(uint64_t *) (buffer + read_index);
+//    read_index += sizeof(uint64_t);
+//    return be64toh(result);
+//}
 
 std::string InputBuffer::read_string() {
 //    Logger::print_debug("Read string size so buff size: ", size_, " buff read_index: ", read_index);
