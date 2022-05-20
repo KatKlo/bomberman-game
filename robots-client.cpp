@@ -6,28 +6,14 @@
 #include <iostream>
 
 int main(int argc, char *argv[]) {
-//    OutputBuffer o;
-//    ClientMessages::Client_server_message_variant msg = ClientMessages::MoveMessage{std::string("👩🏼‍👩🏼‍👧🏼‍👦🏼🇵🇱")};
-//    o.write_client_to_server_message(msg);
-//    uint8_t *buf = (uint8_t *) o.get_buffer();
-//    for (int i = 0; i < o.size(); i++) {
-//        std::cout << (uint32_t) buf[i] << " ";
-//    }
-//
-//    std::cout << "\n";
+    try {
+        ClientParameters p{argc, argv};
 
-    ClientParameters p{argc, argv};
-
-    boost::asio::io_context io_context;
-    Client client(io_context, p);
-//    GUIConnection gui_server(io_context, p.get_gui_address(), p.get_port());
-//
-//
-////    OutputBuffer o;
-////    o.write_client_to_server_message(msg);
-////    gui_server.send(o);
-//
-    io_context.run();
-
+        boost::asio::io_context io_context;
+        Client client(io_context, p);
+        io_context.run();
+    } catch (std::exception &e) {
+        Logger::print_debug("error catched in main", e.what());
+    }
     return 0;
 }

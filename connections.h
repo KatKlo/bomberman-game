@@ -34,12 +34,13 @@ public:
 private:
     Client &client_;
     boost::asio::ip::udp::socket socket;
-    InputBuffer read_msg;
-    OutputBuffer::output_buffer_queue write_msgs;
     boost::asio::ip::udp::endpoint remote_endpoint_;
 
+    UdpInputBuffer read_msg;
+    OutputBuffer write_msg;
+    std::vector<uint8_t> buffer_;
+
     void do_read_message();
-    void do_write();
 };
 
 class ServerConnection {
@@ -52,12 +53,12 @@ public:
 private:
     Client &client_;
     boost::asio::ip::tcp::socket socket;
-    InputBuffer read_msg;
-    OutputBuffer::output_buffer_queue write_msgs;
 
-    void do_connect(const boost::asio::ip::tcp::resolver::results_type& endpoints);
+    TcpInputBuffer read_msg;
+    OutputBuffer write_msg;
+    std::vector<uint8_t> buffer_;
+
     void do_read_message();
-    void do_write();
 };
 
 #endif //ROBOTS_CONNECTIONS_H

@@ -2,151 +2,63 @@
 #include "buffer.h"
 #include "structures.h"
 
-Buffer::Buffer() : buffer(), size_(0) {}
-
-Buffer::buffer_size_t Buffer::size() {
-    return size_;
-}
-
-void Buffer::set_size(Buffer::buffer_size_t new_size) {
-    size_ = new_size;
-}
-
-char *Buffer::get_buffer() {
-    return (char *) buffer;
-}
+// Buffer
 
 std::ostream &operator<<(std::ostream &os, const Buffer &buffer) {
-    uint8_t *buf = (uint8_t *) buffer.buffer;
     for (int i = 0; i < buffer.size_; i++) {
-        os << (uint32_t) buf[i] << " ";
+        os << (uint32_t) buffer.buffer_[i] << " ";
     }
     return os;
 }
 
-void InputBuffer::reset() {
-    read_index = 0;
+void Buffer::resize_if_needed(Buffer::buffer_size_t needed_size) {
+    if (needed_size > capacity_) {
+        capacity_ = needed_size;
+        buffer_.resize(capacity_, 0);
+    }
 }
 
-GUIMessages::GUI_message_variant InputBuffer::read_GUI_message() {
-    reset();
-    GUIMessages::GUI_message_variant result;
-    switch (read_uint8_t()) {
-        case GUIMessages::PLACE_BOMB: {
-            result = read_gui_place_bomb_message();
-            break;
-        }
-        case GUIMessages::PLACE_BLOCK: {
-            result = read_gui_place_block_message();
-            break;
-        }
-        case GUIMessages::MOVE: {
-            result = read_gui_move_message();
-            break;
-        }
-        default: {
-            throw std::invalid_argument("bad gui message type");
-        }
-    }
+// InputBuffer
 
-    if (read_index != size_) {
-        throw std::invalid_argument("gui message too big");
-    }
-
-    return result;
+void InputBuffer::add_to_buffer(std::vector<uint8_t> &data, buffer_size_t size) {
+    resize_if_needed(size + size_);
+    std::copy(&data[0], &data[size], &buffer_[size_]);
+    size_ += size;
 }
 
-ServerMessage::Server_message_variant InputBuffer::read_server_message() {
-//    Logger::print_debug("Read server message buff size: ", size_, " buff read_index: ", read_index);
-    reset();
-    ServerMessage::Server_message_variant result;
-    switch (read_uint8_t()) {
-        case ServerMessage::HELLO: {
-            result = read_server_hello_message();
-            break;
-        }
-        case ServerMessage::ACCEPTED_PLAYER: {
-            result = read_server_accepted_player_message();
-            break;
-        }
-        case ServerMessage::GAME_STARTED: {
-            result = read_server_game_started_message();
-            break;
-        }
-        case ServerMessage::TURN: {
-            result = read_server_turn_message();
-            break;
-        }
-        case ServerMessage::GAME_ENDED: {
-            result = read_server_game_ended_message();
-            break;
-        }
-        default: {
-            throw std::invalid_argument("bad server message type");
-        }
+void InputBuffer::check_size(Buffer::buffer_size_t needed_size) {
+    if (needed_size > size_) {
+        throw std::length_error("message to short");
     }
-
-//    Logger::print_debug("buff size: ", size_, " buff read_index: ", read_index);
-//    if (read_index != size_) {
-//        throw std::invalid_argument("too big server message size");
-//    }
-
-    return result;
 }
 
 uint8_t InputBuffer::read_uint8_t() {
-    if (read_index + sizeof(uint8_t) > size_) {
-        throw std::invalid_argument("bad read_uint8_t");
-    }
-
-    uint8_t result = *(uint8_t *) (buffer + read_index);
+    check_size(read_index + sizeof(uint8_t));
+    uint8_t result = *(uint8_t *) (&buffer_[read_index]);
     read_index += sizeof(uint8_t);
     return result;
 }
 
 uint16_t InputBuffer::read_uint16_t() {
-    if (read_index + sizeof(uint16_t) > size_) {
-        throw std::invalid_argument("bad read_uint16_t");
-    }
-
-    uint16_t result = *(uint16_t *) (buffer + read_index);
+    check_size(read_index + sizeof(uint16_t));
+    uint16_t result = *(uint16_t *) (&buffer_[read_index]);
     read_index += sizeof(uint16_t);
     return be16toh(result);
 }
 
 uint32_t InputBuffer::read_uint32_t() {
-    if (read_index + sizeof(uint32_t) > size_) {
-        throw std::invalid_argument("bad read_uint32_t");
-    }
-
-    uint32_t result = *(uint32_t *) (buffer + read_index);
+    check_size(read_index + sizeof(uint32_t));
+    uint32_t result = *(uint32_t *) (&buffer_[read_index]);
     read_index += sizeof(uint32_t);
     return be32toh(result);
 }
 
-//uint64_t InputBuffer::read_uint64_t() {
-//    if (read_index + sizeof(uint64_t) > size_) {
-//        throw std::invalid_argument("bad read_uint64_t");
-//    }
-//
-//    uint64_t result = *(uint64_t *) (buffer + read_index);
-//    read_index += sizeof(uint64_t);
-//    return be64toh(result);
-//}
-
 std::string InputBuffer::read_string() {
-//    Logger::print_debug("Read string size so buff size: ", size_, " buff read_index: ", read_index);
     uint8_t str_length = read_uint8_t();
-//    Logger::print_debug("Read string with size: ", str_length, " buff size: ", size_, " buff read_index: ", read_index);
-    if (read_index + str_length > size_) {
-        throw std::invalid_argument("bad read_string");
-    }
-
-    char c_string[str_length + 1];
-    c_string[str_length] = 0;
-    memcpy(c_string, buffer + read_index, str_length);
+    check_size(read_index + str_length);
+    std::string result((char *) &buffer_[read_index], str_length);
     read_index += str_length;
-    return std::string{c_string};
+    return result;
 }
 
 Player InputBuffer::read_player() {
@@ -273,117 +185,43 @@ std::unordered_map<player_id_t, score_t> InputBuffer::read_player_scores_map() {
     return map;
 }
 
-GUIMessages::MoveMessage InputBuffer::read_gui_move_message() {
-    auto direction_number = read_uint8_t();
-    return GUIMessages::MoveMessage{Direction{direction_number}};
+// OutputBuffer
+
+Buffer::buffer_size_t OutputBuffer::size() {
+    return size_;
 }
 
-GUIMessages::PlaceBombMessage InputBuffer::read_gui_place_bomb_message() {
-    return GUIMessages::PlaceBombMessage{};
+uint8_t* OutputBuffer::get_buffer() {
+    return (uint8_t *) &buffer_[0];
 }
 
-GUIMessages::PlaceBlockMessage InputBuffer::read_gui_place_block_message() {
-    return GUIMessages::PlaceBlockMessage{};
-}
-
-ServerMessage::HelloMessage InputBuffer::read_server_hello_message() {
-//    Logger::print_debug("Read hello message buff size: ", size_, " buff read_index: ", read_index);
-    std::string server_name = read_string();
-    uint8_t players_count = read_uint8_t();
-    uint16_t size_x = read_uint16_t();
-    uint16_t size_y = read_uint16_t();
-    uint16_t game_length = read_uint16_t();
-    uint16_t explosion_radius = read_uint16_t();
-    uint16_t bomb_timer = read_uint16_t();
-
-    return ServerMessage::HelloMessage{server_name, players_count, size_x, size_y,
-                                       game_length, explosion_radius, bomb_timer};
-}
-
-ServerMessage::AcceptedPlayerMessage InputBuffer::read_server_accepted_player_message() {
-    player_id_t id = read_uint8_t();
-    Player player = read_player();
-
-    return ServerMessage::AcceptedPlayerMessage{id, player};
-}
-
-ServerMessage::GameStartedMessage InputBuffer::read_server_game_started_message() {
-    std::unordered_map<player_id_t, Player> players = read_players_map();
-
-    return ServerMessage::GameStartedMessage{players};
-}
-
-ServerMessage::TurnMessage InputBuffer::read_server_turn_message() {
-    uint16_t turn = read_uint16_t();
-    std::vector<ServerMessage::event_message_variant> events = read_events_vector();
-    return ServerMessage::TurnMessage{turn, events};
-}
-
-ServerMessage::GameEndedMessage InputBuffer::read_server_game_ended_message() {
-    std::unordered_map<player_id_t, score_t> scores = read_player_scores_map();
-    return ServerMessage::GameEndedMessage{scores};
-}
-
-void OutputBuffer::reset() {
+void OutputBuffer::reset_buffer() {
     write_index = 0;
     size_ = 0;
 }
 
-void OutputBuffer::write_client_to_GUI_message(ClientMessages::Client_GUI_message_variant &msg) {
-    reset();
-    switch (msg.index()) {
-        case ClientMessages::LOBBY:
-            write_client_lobby_message(std::get<ClientMessages::LobbyMessage>(msg));
-            break;
-        case ClientMessages::GAME:
-            write_client_game_message(std::get<ClientMessages::GameMessage>(msg));
-            break;
-    }
-    set_size(write_index);
-}
-
-void OutputBuffer::write_client_to_server_message(ClientMessages::Client_server_message_variant &msg) {
-    reset();
-    switch (msg.index()) {
-        case ClientMessages::JOIN:
-            write_client_join_message(std::get<ClientMessages::JoinMessage>(msg));
-            break;
-        case ClientMessages::PLACE_BOMB:
-            write_client_place_bomb_message(std::get<ClientMessages::PlaceBombMessage>(msg));
-            break;
-        case ClientMessages::PLACE_BLOCK:
-            write_client_place_block_message(std::get<ClientMessages::PlaceBlockMessage>(msg));
-            break;
-        case ClientMessages::MOVE:
-            write_client_move_message(std::get<ClientMessages::MoveMessage>(msg));
-            break;
-    }
-    set_size(write_index);
-}
-
 void OutputBuffer::write_uint8_t(uint8_t number) {
-    *(uint8_t *) (buffer + write_index) = number;
+    resize_if_needed(write_index + sizeof(uint8_t));
+    *(uint8_t *) (&buffer_[write_index]) = number;
     write_index += sizeof(uint8_t);
 }
 
 void OutputBuffer::write_uint16_t(uint16_t number) {
-    *(uint16_t *) (buffer + write_index) = htobe16(number);
+    resize_if_needed(write_index + sizeof(uint16_t));
+    *(uint16_t *) (&buffer_[write_index]) = htobe16(number);
     write_index += sizeof(uint16_t);
 }
 
 void OutputBuffer::write_uint32_t(uint32_t number) {
-    *(uint32_t *) (buffer + write_index) = htobe32(number);
+    resize_if_needed(write_index + sizeof(uint32_t));
+    *(uint32_t *) (&buffer_[write_index]) = htobe32(number);
     write_index += sizeof(uint32_t);
-}
-
-void OutputBuffer::write_uint64_t(uint64_t number) {
-    *(uint64_t *) (buffer + write_index) = htobe64(number);
-    write_index += sizeof(uint64_t);
 }
 
 void OutputBuffer::write_string(std::string &string) {
     write_uint8_t(string.length());
-    memcpy(buffer + write_index, string.c_str(), string.length());
+    resize_if_needed(write_index + string.length());
+    std::copy(string.c_str(), string.c_str() + string.length(), &buffer_[write_index]);
     write_index += string.length();
 }
 
@@ -483,4 +321,174 @@ void OutputBuffer::write_client_game_message(ClientMessages::GameMessage &msg) {
     write_bombs_vector(msg.bombs);
     write_positions_vector(msg.explosions);
     write_player_scores_map(msg.scores);
+}
+
+void OutputBuffer::write_client_to_server_message(ClientMessages::Client_server_message_variant &msg) {
+    reset_buffer();
+
+    switch (msg.index()) {
+        case ClientMessages::JOIN:
+            write_client_join_message(std::get<ClientMessages::JoinMessage>(msg));
+            break;
+        case ClientMessages::PLACE_BOMB:
+            write_client_place_bomb_message(std::get<ClientMessages::PlaceBombMessage>(msg));
+            break;
+        case ClientMessages::PLACE_BLOCK:
+            write_client_place_block_message(std::get<ClientMessages::PlaceBlockMessage>(msg));
+            break;
+        case ClientMessages::MOVE:
+            write_client_move_message(std::get<ClientMessages::MoveMessage>(msg));
+            break;
+    }
+
+    size_ = write_index;
+}
+
+void OutputBuffer::write_client_to_GUI_message(ClientMessages::Client_GUI_message_variant &msg) {
+    reset_buffer();
+    switch (msg.index()) {
+        case ClientMessages::LOBBY:
+            write_client_lobby_message(std::get<ClientMessages::LobbyMessage>(msg));
+            break;
+        case ClientMessages::GAME:
+            write_client_game_message(std::get<ClientMessages::GameMessage>(msg));
+            break;
+    }
+
+    size_ = write_index;
+}
+
+// UdpInputBuffer
+
+void UdpInputBuffer::add_packet(std::vector<uint8_t> &data, Buffer::buffer_size_t size) {
+    reset_buffer();
+    add_to_buffer(data, size);
+}
+
+
+void UdpInputBuffer::reset_buffer() {
+    read_index = 0;
+    size_ = 0;
+}
+
+GUIMessages::GUI_message_variant UdpInputBuffer::read_GUI_message() {
+    GUIMessages::GUI_message_variant result;
+    switch (read_uint8_t()) {
+        case GUIMessages::PLACE_BOMB: {
+            result = read_gui_place_bomb_message();
+            break;
+        }
+        case GUIMessages::PLACE_BLOCK: {
+            result = read_gui_place_block_message();
+            break;
+        }
+        case GUIMessages::MOVE: {
+            result = read_gui_move_message();
+            break;
+        }
+        default: {
+            throw std::invalid_argument("bad gui message type");
+        }
+    }
+
+    if (read_index != size_) {
+        throw std::invalid_argument("gui message too long");
+    }
+
+    reset_buffer();
+    return result;
+}
+
+GUIMessages::MoveMessage UdpInputBuffer::read_gui_move_message() {
+    auto direction_number = read_uint8_t();
+    return GUIMessages::MoveMessage{Direction{direction_number}};
+}
+
+GUIMessages::PlaceBombMessage UdpInputBuffer::read_gui_place_bomb_message() {
+    return GUIMessages::PlaceBombMessage{};
+}
+
+GUIMessages::PlaceBlockMessage UdpInputBuffer::read_gui_place_block_message() {
+    return GUIMessages::PlaceBlockMessage{};
+}
+
+// TcpInputBuffer
+
+void TcpInputBuffer::add_packet(std::vector<uint8_t> &data, Buffer::buffer_size_t size) {
+    add_to_buffer(data, size);
+}
+
+void TcpInputBuffer::clean_after_correct_read() {
+    std::copy(&buffer_[read_index], &buffer_[size_], &buffer_[0]);
+    size_ -= read_index;
+    read_index = 0;
+}
+
+ServerMessage::Server_message_variant TcpInputBuffer::read_server_message() {
+    ServerMessage::Server_message_variant result;
+    switch (read_uint8_t()) {
+        case ServerMessage::HELLO: {
+            result = read_server_hello_message();
+            break;
+        }
+        case ServerMessage::ACCEPTED_PLAYER: {
+            result = read_server_accepted_player_message();
+            break;
+        }
+        case ServerMessage::GAME_STARTED: {
+            result = read_server_game_started_message();
+            break;
+        }
+        case ServerMessage::TURN: {
+            result = read_server_turn_message();
+            break;
+        }
+        case ServerMessage::GAME_ENDED: {
+            result = read_server_game_ended_message();
+            break;
+        }
+        default: {
+            throw std::invalid_argument("bad server message type");
+        }
+    }
+
+    clean_after_correct_read();
+    return result;
+}
+
+ServerMessage::HelloMessage TcpInputBuffer::read_server_hello_message() {
+    std::string server_name = read_string();
+    uint8_t players_count = read_uint8_t();
+    uint16_t size_x = read_uint16_t();
+    uint16_t size_y = read_uint16_t();
+    uint16_t game_length = read_uint16_t();
+    uint16_t explosion_radius = read_uint16_t();
+    uint16_t bomb_timer = read_uint16_t();
+
+    return ServerMessage::HelloMessage{server_name, players_count, size_x, size_y,
+                                       game_length, explosion_radius, bomb_timer};
+}
+
+ServerMessage::AcceptedPlayerMessage TcpInputBuffer::read_server_accepted_player_message() {
+    player_id_t id = read_uint8_t();
+    Player player = read_player();
+
+    return ServerMessage::AcceptedPlayerMessage{id, player};
+}
+
+ServerMessage::GameStartedMessage TcpInputBuffer::read_server_game_started_message() {
+    std::unordered_map<player_id_t, Player> players = read_players_map();
+
+    return ServerMessage::GameStartedMessage{players};
+}
+
+ServerMessage::TurnMessage TcpInputBuffer::read_server_turn_message() {
+    uint16_t turn = read_uint16_t();
+    std::vector<ServerMessage::event_message_variant> events = read_events_vector();
+    return ServerMessage::TurnMessage{turn, events};
+}
+
+ServerMessage::GameEndedMessage TcpInputBuffer::read_server_game_ended_message() {
+    std::unordered_map<player_id_t, score_t> scores = read_player_scores_map();
+    return ServerMessage::GameEndedMessage{scores};
 }

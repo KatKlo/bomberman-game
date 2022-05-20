@@ -11,6 +11,10 @@ enum GameState {
     Game
 };
 
+// TODO:
+//  - zmienic konstruktor na tylko ze stringiem, dodać nowy stan "NotConnected" i handlowac hello na tym stanie żeby móc od razu zwraacac msg
+//  - dodać struktury z msg dla gui żeby ich nie generowac za kazdym razem
+//  - spróbować zmienic enum na struct i dodać template (zad 4 jnp1 + state patter jnp2) żeby podzielić analizowanie info
 class GameInfo {
 public:
     GameInfo(ServerMessage::HelloMessage &msg, std::string &player_name);
@@ -19,7 +23,6 @@ public:
 
     ClientMessages::Client_GUI_message_optional_variant handle_server_message(ServerMessage::Server_message_variant &msg);
     ClientMessages::Client_server_message_optional_variant handle_GUI_message(GUIMessages::GUI_message_variant &msg);
-    bool is_in_lobby();
 
 private:
     std::string player_name_;

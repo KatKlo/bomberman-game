@@ -17,6 +17,7 @@ GameInfo::GameInfo(ServerMessage::HelloMessage &msg, std::string &player_name) :
             sth.emplace_back(PositionType::Empty);
         }
     }
+    changed = true;
 }
 
 ClientMessages::Client_GUI_message_optional_variant
@@ -125,10 +126,6 @@ void GameInfo::insert_players(std::unordered_map<player_id_t, Player> &playerss)
         players.emplace(it.first, PlayerInfo{it.second, Position{0, 0}, 0});
     }
 
-}
-
-bool GameInfo::is_in_lobby() {
-    return (state == GameState::Lobby);
 }
 
 ClientMessages::Client_server_message_optional_variant

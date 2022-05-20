@@ -8,12 +8,18 @@ using boost::asio::ip::udp;
 using boost::asio::ip::tcp;
 
 GUIConnection::GUIConnection(boost::asio::io_context &io_context, Address &&gui_address, uint16_t port, Client &client)
-        : client_(client), socket(io_context, udp::endpoint(udp::v4(), port)) {
+        : client_(client),
+          socket(io_context, udp::endpoint(udp::v4(), port)),
+          remote_endpoint_(),
+          read_msg(),
+          write_msg(),
+          buffer_(Buffer::MAX_PACKET_LENGTH) {
     Logger::print_debug("connecting to GUI server (", gui_address, ") on port ", port);
 
     boost::asio::ip::udp::resolver resolver(io_context);
-    auto endpoints = resolver.resolve(gui_address.host, gui_address.port);
-    boost::asio::connect(socket, endpoints);
+    remote_endpoint_ = *resolver.resolve(gui_address.host, gui_address.port);
+//    auto endpoints = resolver.resolve(gui_address.host, gui_address.port);
+//    boost::asio::connect(socket, endpoints);
 
     Logger::print_debug("GUI server connected");
 
@@ -23,58 +29,41 @@ GUIConnection::GUIConnection(boost::asio::io_context &io_context, Address &&gui_
 
 void GUIConnection::send(ClientMessages::Client_GUI_message_variant &msg) {
     Logger::print_debug("starting sending to GUI");
-    bool write_in_progress = !write_msgs.empty();
-    OutputBuffer o;
-    o.write_client_to_GUI_message(msg);
-    write_msgs.push_back(o);
-    if (!write_in_progress) {
-        do_write();
-    }
+    write_msg.write_client_to_GUI_message(msg);
+    socket.send_to(boost::asio::buffer(write_msg.get_buffer(), write_msg.size()), remote_endpoint_);
+    Logger::print_debug("sent to GUI");
 }
 
 void GUIConnection::do_read_message() {
-    socket.async_receive(
-            boost::asio::buffer(read_msg.get_buffer(), Buffer::MAX_UDP_LENGTH),
+    socket.async_receive_from(
+            boost::asio::buffer(&buffer_[0], Buffer::MAX_PACKET_LENGTH),
+            remote_endpoint_,
             [this](boost::system::error_code ec, std::size_t length) {
                 Logger::print_debug("GUI - do read ", length);
                 if (!ec) {
-                    read_msg.set_size(length);
+                    read_msg.add_packet(buffer_, length);
                     Logger::print_debug("Received message from gui:\n", read_msg);
                     try {
                         auto sth = read_msg.read_GUI_message();
                         client_.handle_GUI_message(sth);
-                    } catch (std::invalid_argument &e) {
+                    } catch (std::logic_error &e) {
                         Logger::print_debug("Bad message from gui - ", e.what());
                     }
-                    do_read_message();
                 } else {
+                    Logger::print_debug("Error in reading from gui");
                     // TODO realizacja erroru
                 }
+                do_read_message();
             });
-}
-
-void GUIConnection::do_write() {
-    socket.async_send(
-            boost::asio::buffer(write_msgs.front().get_buffer(), write_msgs.front().size()),
-            [this](boost::system::error_code ec, std::size_t /*length*/) {
-                Logger::print_debug("GUI - do write:\n", write_msgs.front());
-                if (!ec) {
-                    write_msgs.pop_front();
-                    if (!write_msgs.empty()) {
-                        do_write();
-                    }
-                } else {
-                    // TODO realizacja erroru
-                }
-            });
-
 }
 
 ServerConnection::ServerConnection(boost::asio::io_context &io_context, Address &&server_address, Client &client)
-        : client_(client), socket(io_context) {
+        : client_(client),
+          socket(io_context),
+          read_msg(),
+          write_msg(),
+          buffer_(Buffer::MAX_PACKET_LENGTH) {
     Logger::print_debug("connecting to server (", server_address, ")");
-
-
     tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve(server_address.host, server_address.port);
 //    do_connect(endpoints);
@@ -88,61 +77,35 @@ ServerConnection::ServerConnection(boost::asio::io_context &io_context, Address 
 
 void ServerConnection::do_read_message() {
     socket.async_read_some(
-            boost::asio::buffer(read_msg.get_buffer(), Buffer::MAX_UDP_LENGTH),
+            boost::asio::buffer(&buffer_[0], Buffer::MAX_PACKET_LENGTH),
             [this](boost::system::error_code ec, std::size_t length) {
                 Logger::print_debug("server - do read ", length);
                 if (!ec) {
-                    read_msg.set_size(length);
+                    read_msg.add_packet(buffer_, length);
                     Logger::print_debug("Received message from server:\n", read_msg);
-                    try {
-                        auto sth = read_msg.read_server_message();
-                        client_.handle_server_message(sth);
-                    } catch (std::invalid_argument &e) {
-                        Logger::print_debug("Bad message from server - ", e.what());
+                    bool aaa = true;
+                    while (aaa) {
+                        try {
+                            auto sth = read_msg.read_server_message();
+                            Logger::print_debug("read message :)");
+                            client_.handle_server_message(sth);
+                        } catch (std::length_error &e) {
+                            aaa = false;
+                        }
                     }
                     do_read_message();
                 } else {
                     // TODO realizacja erroru
-                }
-            });
-}
-
-void ServerConnection::do_write() {
-    socket.async_send(
-            boost::asio::buffer(write_msgs.front().get_buffer(), write_msgs.front().size()),
-            [this](boost::system::error_code ec, std::size_t /*length*/) {
-                Logger::print_debug("server - do write:\n", write_msgs.front());
-                if (!ec) {
-                    write_msgs.pop_front();
-                    if (!write_msgs.empty()) {
-                        do_write();
-                    }
-                } else {
-                    // TODO realizacja erroru
+                    Logger::print_debug("Error in reading from server");
                 }
             });
 }
 
 void ServerConnection::send(ClientMessages::Client_server_message_variant &msg) {
     Logger::print_debug("starting sending to server");
-    bool write_in_progress = !write_msgs.empty();
-    OutputBuffer o;
-    o.write_client_to_server_message(msg);
-    write_msgs.push_back(o);
-    if (!write_in_progress) {
-        do_write();
-    }
-}
-
-void ServerConnection::do_connect(const tcp::resolver::results_type &endpoints) {
-    boost::asio::async_connect(socket, endpoints,
-                               [this](boost::system::error_code ec, const tcp::endpoint &) {
-                                   if (!ec) {
-                                       Logger::print_debug("server connected");
-                                       Logger::print_debug("starting server reading");
-                                       do_read_message();
-                                   }
-                               });
+    write_msg.write_client_to_server_message(msg);
+    socket.send(boost::asio::buffer(write_msg.get_buffer(), write_msg.size()));
+    Logger::print_debug("sent to server");
 }
 
 Client::Client(boost::asio::io_context &io_context, ClientParameters &parameters) {
