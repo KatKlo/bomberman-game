@@ -6,15 +6,15 @@
 namespace Checker {
     void check_errno() {
         if (errno != 0) {
-            Logger::print_error_and_exit("Error: errno ", errno, " in ", __func__, " at ", __FILE__, ":", __LINE__,
-                                         "\n",
-                                         strerror(errno));
+            Logger::print_error("Error: errno ", errno, " in ", __func__,
+                                " at ", __FILE__, ":", __LINE__,
+                                "\n", strerror(errno));
         }
     }
 
     void ensure(bool x) {
         if (!x) {
-            Logger::print_error_and_exit("Error: statement was false in ", __func__, " at ", __FILE__, ":", __LINE__);
+            Logger::print_error("Error: statement was false in ", __func__, " at ", __FILE__, ":", __LINE__);
         }
     }
 
@@ -39,7 +39,7 @@ namespace Checker {
 //        }
 //        Checker::check_errno();
 //        if (number > max_limit || number < min_limit) {
-//            Logger::print_error_and_exit(number, " is not a valid", name, " number");
+//            Logger::print_error(number, " is not a valid", name, " number");
 //        }
 //
 //        return number;

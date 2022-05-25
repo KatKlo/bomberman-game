@@ -28,11 +28,10 @@ public:
     }
 
     template<typename... Args>
-    static void print_error_and_exit(Args &&...args) {
+    static void print_error(Args &&...args) {
         std::cerr << "Error: ";
         (std::cerr << ... << args);
         std::cerr << "\n";
-        exit(EXIT_FAILURE);
     }
 };
 

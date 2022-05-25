@@ -14,8 +14,9 @@ class Client {
 public:
     Client(boost::asio::io_context &io_context, ClientParameters &parameters);
 
-    void handle_GUI_message(GUIMessages::GUI_message_variant &msg);
-    void handle_server_message(ServerMessage::Server_message_variant &msg);
+    void handle_GUI_message(InputMessage::input_message_variant &msg);
+    void handle_server_message(ServerMessage::server_message_variant &msg);
+    void close_connections();
 
 private:
     std::shared_ptr<GUIConnection> gui_connection;
@@ -29,7 +30,8 @@ public:
     GUIConnection(boost::asio::io_context &io_context, Address &&gui_address, uint16_t port, Client &client);
 
 //    void close_connection();
-    void send(ClientMessages::Client_GUI_message_variant &msg);
+    void send(DrawMessage::draw_message_variant &msg);
+    void close();
 
 private:
     Client &client_;
@@ -48,7 +50,8 @@ public:
     ServerConnection(boost::asio::io_context &io_context, Address &&server_address, Client &client);
 
 //    void close_connection();
-    void send(ClientMessages::Client_server_message_variant &msg);
+    void send(ClientMessage::client_message_variant &msg);
+    void close();
 
 private:
     Client &client_;

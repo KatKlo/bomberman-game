@@ -9,7 +9,7 @@ using boost::asio::ip::tcp;
 
 GUIConnection::GUIConnection(boost::asio::io_context &io_context, Address &&gui_address, uint16_t port, Client &client)
         : client_(client),
-          socket(io_context, udp::endpoint(udp::v4(), port)),
+          socket(io_context, udp::endpoint(udp::v6(), port)),
           remote_endpoint_(),
           read_msg(),
           write_msg(),
@@ -27,12 +27,17 @@ GUIConnection::GUIConnection(boost::asio::io_context &io_context, Address &&gui_
     do_read_message();
 }
 
-void GUIConnection::send(ClientMessages::Client_GUI_message_variant &msg) {
-    Logger::print_debug("starting sending to GUI");
-    write_msg.write_client_to_GUI_message(msg);
+void GUIConnection::send(DrawMessage::draw_message_variant &msg) {
+    write_msg.write_draw_message(msg);
+    Logger::print_debug("starting sending to GUI:\n", write_msg);
     socket.send_to(boost::asio::buffer(write_msg.get_buffer(), write_msg.size()), remote_endpoint_);
     Logger::print_debug("sent to GUI");
 }
+
+void GUIConnection::close() {
+    socket.close();
+}
+
 
 void GUIConnection::do_read_message() {
     socket.async_receive_from(
@@ -44,17 +49,20 @@ void GUIConnection::do_read_message() {
                     read_msg.add_packet(buffer_, length);
                     Logger::print_debug("Received message from gui:\n", read_msg);
                     try {
-                        auto sth = read_msg.read_GUI_message();
+                        auto sth = read_msg.read_input_message();
                         client_.handle_GUI_message(sth);
                     } catch (std::logic_error &e) {
                         Logger::print_debug("Bad message from gui - ", e.what());
                     }
+                } else if (ec == boost::asio::error::operation_aborted) {
+                    return;
                 } else {
                     Logger::print_debug("Error in reading from gui");
-                    // TODO realizacja erroru
                 }
                 do_read_message();
-            });
+            }
+
+    );
 }
 
 ServerConnection::ServerConnection(boost::asio::io_context &io_context, Address &&server_address, Client &client)
@@ -94,18 +102,24 @@ void ServerConnection::do_read_message() {
                         }
                     }
                     do_read_message();
+                } else if (ec == boost::asio::error::operation_aborted) {
+                    return;
                 } else {
-                    // TODO realizacja erroru
                     Logger::print_debug("Error in reading from server");
+                    client_.close_connections();
                 }
             });
 }
 
-void ServerConnection::send(ClientMessages::Client_server_message_variant &msg) {
-    Logger::print_debug("starting sending to server");
-    write_msg.write_client_to_server_message(msg);
+void ServerConnection::send(ClientMessage::client_message_variant &msg) {
+    write_msg.write_client_message(msg);
+    Logger::print_debug("starting sending to server:\n", write_msg);
     socket.send(boost::asio::buffer(write_msg.get_buffer(), write_msg.size()));
     Logger::print_debug("sent to server");
+}
+
+void ServerConnection::close() {
+    socket.close();
 }
 
 Client::Client(boost::asio::io_context &io_context, ClientParameters &parameters) {
@@ -122,21 +136,21 @@ Client::Client(boost::asio::io_context &io_context, ClientParameters &parameters
     name = parameters.get_player_name();
 }
 
-void Client::handle_GUI_message(GUIMessages::GUI_message_variant &msg) {
+void Client::handle_GUI_message(InputMessage::input_message_variant &msg) {
     if (!gameInfo.has_value()) {
         Logger::print_debug("no connection with server");
         return;
     }
 
-    ClientMessages::Client_server_message_optional_variant new_msg = gameInfo.value().handle_GUI_message(msg);
+    ClientMessage::client_message_optional_variant new_msg = gameInfo.value().handle_GUI_message(msg);
     if (new_msg.has_value()) {
         server_connection->send(new_msg.value());
     }
 }
 
-void Client::handle_server_message(ServerMessage::Server_message_variant &msg) {
+void Client::handle_server_message(ServerMessage::server_message_variant &msg) {
     if (!gameInfo.has_value() && msg.index() == ServerMessage::HELLO) {
-        gameInfo = GameInfo(std::get<ServerMessage::HelloMessage>(msg), name);
+        gameInfo = std::make_optional<GameInfo>(std::get<ServerMessage::Hello>(msg), name);
     }
 
     if (gameInfo.has_value()) {
@@ -145,4 +159,9 @@ void Client::handle_server_message(ServerMessage::Server_message_variant &msg) {
             gui_connection->send(new_msg.value());
         }
     }
+}
+
+void Client::close_connections() {
+    gui_connection->close();
+    server_connection->close();
 }

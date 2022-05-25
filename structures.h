@@ -65,46 +65,44 @@ struct GameBasicInfo {
     uint16_t game_length;
 };
 
-namespace ClientMessages {
-    // client_message_id
-    // server
+namespace ClientMessage {
+    // client message id
     constexpr uint8_t JOIN = 0;
     constexpr uint8_t PLACE_BOMB = 1;
     constexpr uint8_t PLACE_BLOCK = 2;
     constexpr uint8_t MOVE = 3;
-    // gui
-    constexpr uint8_t LOBBY = 0;
-    constexpr uint8_t GAME = 1;
 
-
-
-    struct JoinMessage {
+    struct Join {
         std::string name;
     };
 
-    struct PlaceBombMessage {
-    };
+    struct PlaceBomb {};
 
-    struct PlaceBlockMessage {
-    };
+    struct PlaceBlock {};
 
-    struct MoveMessage {
+    struct Move {
         Direction direction;
     };
 
-    using Client_server_message_variant = std::variant<
-            JoinMessage,
-            PlaceBombMessage,
-            PlaceBlockMessage,
-            MoveMessage>;
+    using client_message_variant = std::variant<
+            Join,
+            PlaceBomb,
+            PlaceBlock,
+            Move>;
 
-    using Client_server_message_optional_variant = std::optional<Client_server_message_variant>;
+    using client_message_optional_variant = std::optional<client_message_variant>;
+}
 
-    struct LobbyMessage {
-        LobbyMessage(GameBasicInfo &info, uint8_t playersCount,
-                     uint16_t explosionRadius,
-                     uint16_t bombTimer,
-                     std::unordered_map<player_id_t, PlayerInfo> &p);
+namespace DrawMessage {
+    // draw message id
+    constexpr uint8_t LOBBY = 0;
+    constexpr uint8_t GAME = 1;
+
+    struct Lobby {
+        Lobby(GameBasicInfo &info, uint8_t playersCount,
+              uint16_t explosionRadius,
+              uint16_t bombTimer,
+              std::unordered_map<player_id_t, PlayerInfo> &p);
 
         std::string server_name;
         uint8_t players_count;
@@ -116,12 +114,12 @@ namespace ClientMessages {
         std::unordered_map<player_id_t, Player> players;
     };
 
-    struct GameMessage {
-        GameMessage(GameBasicInfo &info,
-                    uint16_t turn,
-                    std::unordered_map<player_id_t, PlayerInfo> &players_info,
-                    std::unordered_map<bomb_id_t, Bomb> &bombs_positions,
-                    std::vector<std::vector<PositionType>> &board);
+    struct Game {
+        Game(GameBasicInfo &info,
+             uint16_t turn,
+             std::unordered_map<player_id_t, PlayerInfo> &players_info,
+             std::unordered_map<bomb_id_t, Bomb> &bombs_positions,
+             std::vector<std::vector<PositionType>> &board);
 
         std::string server_name;
         uint16_t size_x;
@@ -136,13 +134,12 @@ namespace ClientMessages {
         std::unordered_map<player_id_t, score_t> scores;
     };
 
-    using Client_GUI_message_variant = std::variant<LobbyMessage, GameMessage>;
-
-    using Client_GUI_message_optional_variant = std::optional<Client_GUI_message_variant>;
+    using draw_message_variant = std::variant<Lobby, Game>;
+    using draw_message_optional_variant = std::optional<draw_message_variant>;
 }
 
-namespace ServerMessage {
-    // event_id
+namespace Event {
+    // event id
     constexpr uint8_t BOMB_PLACED = 0;
     constexpr uint8_t BOMB_EXPLODED = 1;
     constexpr uint8_t PLAYER_MOVED = 2;
@@ -173,15 +170,17 @@ namespace ServerMessage {
             BombExplodedEvent,
             PlayerMovedEvent,
             BlockPlacedEvent>;
+}
 
-    // server_message_id
+namespace ServerMessage {
+    // server message id
     constexpr uint8_t HELLO = 0;
     constexpr uint8_t ACCEPTED_PLAYER = 1;
     constexpr uint8_t GAME_STARTED = 2;
     constexpr uint8_t TURN = 3;
     constexpr uint8_t GAME_ENDED = 4;
 
-    struct HelloMessage {
+    struct Hello {
         std::string server_name;
         uint8_t players_count;
         uint16_t size_x;
@@ -191,53 +190,54 @@ namespace ServerMessage {
         uint16_t bomb_timer;
     };
 
-    struct AcceptedPlayerMessage {
+    struct AcceptedPlayer {
         player_id_t id;
         Player player;
     };
 
-    struct GameStartedMessage {
+    struct GameStarted {
         std::unordered_map<player_id_t, Player> players;
     };
 
-    struct TurnMessage {
+    struct Turn {
         uint16_t turn;
-        std::vector<event_message_variant> events;
+        std::vector<Event::event_message_variant> events;
     };
-    struct GameEndedMessage {
+
+    struct GameEnded {
         std::unordered_map<player_id_t, score_t> scores;
     };
 
-    using Server_message_variant = std::variant<
-            HelloMessage,
-            AcceptedPlayerMessage,
-            GameStartedMessage,
-            TurnMessage,
-            GameEndedMessage>;
+    using server_message_variant = std::variant<
+            Hello,
+            AcceptedPlayer,
+            GameStarted,
+            Turn,
+            GameEnded>;
 
-    using Server_message_optional_variant = std::optional<Server_message_variant>;
+    using server_message_optional_variant = std::optional<server_message_variant>;
 }
 
-namespace GUIMessages {
-    // gui_message_id
+namespace InputMessage {
+    // input message id
     constexpr uint8_t PLACE_BOMB = 0;
     constexpr uint8_t PLACE_BLOCK = 1;
     constexpr uint8_t MOVE = 2;
 
-    struct __attribute__((__packed__)) PlaceBombMessage {};
+    struct PlaceBomb {};
 
-    struct __attribute__((__packed__)) PlaceBlockMessage {};
+    struct PlaceBlock {};
 
-    struct __attribute__((__packed__)) MoveMessage {
+    struct Move {
         Direction direction;
     };
 
-    using GUI_message_variant = std::variant<
-            PlaceBombMessage,
-            PlaceBlockMessage,
-            MoveMessage>;
+    using input_message_variant = std::variant<
+            PlaceBomb,
+            PlaceBlock,
+            Move>;
 
-    using GUI_message_optional_variant = std::optional<GUI_message_variant>;
+    using input_message_optional_variant = std::optional<input_message_variant>;
 }
 
 #endif //ROBOTS_STRUCTURES_H

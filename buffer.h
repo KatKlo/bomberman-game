@@ -38,14 +38,14 @@ protected:
     Player read_player();
     Position read_position();
 
-    ServerMessage::BombPlacedEvent read_bomb_placed_event();
-    ServerMessage::BombExplodedEvent read_bomb_exploded_event();
-    ServerMessage::PlayerMovedEvent read_player_moved_event();
-    ServerMessage::BlockPlacedEvent read_block_placed_event();
+    Event::BombPlacedEvent read_bomb_placed_event();
+    Event::BombExplodedEvent read_bomb_exploded_event();
+    Event::PlayerMovedEvent read_player_moved_event();
+    Event::BlockPlacedEvent read_block_placed_event();
 
-    ServerMessage::event_message_variant read_event();
+    Event::event_message_variant read_event();
 
-    std::vector<ServerMessage::event_message_variant> read_events_vector();
+    std::vector<Event::event_message_variant> read_events_vector();
     std::vector<player_id_t> read_players_id_vector();
     std::vector<Position> read_positions_vector();
     std::unordered_map<player_id_t, Player> read_players_map();
@@ -62,8 +62,8 @@ public:
     buffer_size_t size();
     uint8_t *get_buffer();
 
-    void write_client_to_GUI_message(ClientMessages::Client_GUI_message_variant &msg);
-    void write_client_to_server_message(ClientMessages::Client_server_message_variant &msg);
+    void write_draw_message(DrawMessage::draw_message_variant &msg);
+    void write_client_message(ClientMessage::client_message_variant &msg);
 
 protected:
     buffer_size_t write_index;
@@ -86,24 +86,24 @@ protected:
     void write_player_positions_map(std::unordered_map<player_id_t, Position> &player_positions);
     void write_player_scores_map(std::unordered_map<player_id_t, score_t> &scores);
 
-    void write_client_lobby_message(ClientMessages::LobbyMessage &msg);
-    void write_client_game_message(ClientMessages::GameMessage &msg);
-    void write_client_join_message(ClientMessages::JoinMessage &msg);
-    void write_client_place_bomb_message(ClientMessages::PlaceBombMessage &msg);
-    void write_client_place_block_message(ClientMessages::PlaceBlockMessage &msg);
-    void write_client_move_message(ClientMessages::MoveMessage &msg);
+    void write_draw_lobby_message(DrawMessage::Lobby &msg);
+    void write_draw_game_message(DrawMessage::Game &msg);
+    void write_client_join_message(ClientMessage::Join &msg);
+    void write_client_place_bomb_message(ClientMessage::PlaceBomb &msg);
+    void write_client_place_block_message(ClientMessage::PlaceBlock &msg);
+    void write_client_move_message(ClientMessage::Move &msg);
 };
 
 // supposed to keep at most only one message at the time
 class UdpInputBuffer : public InputBuffer {
 public:
-    GUIMessages::GUI_message_variant read_GUI_message();
+    InputMessage::input_message_variant read_input_message();
     void add_packet(std::vector<uint8_t> &data, buffer_size_t size) override;
 
 private:
-    GUIMessages::MoveMessage read_gui_move_message();
-    GUIMessages::PlaceBombMessage read_gui_place_bomb_message();
-    GUIMessages::PlaceBlockMessage read_gui_place_block_message();
+    InputMessage::Move read_gui_move_message();
+    InputMessage::PlaceBomb read_gui_place_bomb_message();
+    InputMessage::PlaceBlock read_gui_place_block_message();
 
     void reset_buffer();
 };
@@ -111,15 +111,15 @@ private:
 
 class TcpInputBuffer : public InputBuffer {
 public:
-    ServerMessage::Server_message_variant read_server_message();
+    ServerMessage::server_message_variant read_server_message();
     void add_packet(std::vector<uint8_t> &data, buffer_size_t size);
 
 private:
-    ServerMessage::HelloMessage read_server_hello_message();
-    ServerMessage::AcceptedPlayerMessage read_server_accepted_player_message();
-    ServerMessage::GameStartedMessage read_server_game_started_message();
-    ServerMessage::TurnMessage read_server_turn_message();
-    ServerMessage::GameEndedMessage read_server_game_ended_message();
+    ServerMessage::Hello read_server_hello_message();
+    ServerMessage::AcceptedPlayer read_server_accepted_player_message();
+    ServerMessage::GameStarted read_server_game_started_message();
+    ServerMessage::Turn read_server_turn_message();
+    ServerMessage::GameEnded read_server_game_ended_message();
 
     void clean_after_correct_read();
 };

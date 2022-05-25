@@ -17,12 +17,13 @@ enum GameState {
 //  - spróbować zmienic enum na struct i dodać template (zad 4 jnp1 + state patter jnp2) żeby podzielić analizowanie info
 class GameInfo {
 public:
-    GameInfo(ServerMessage::HelloMessage &msg, std::string &player_name);
+    GameInfo(ServerMessage::Hello &msg, std::string &player_name);
 
     GameInfo() = default;
 
-    ClientMessages::Client_GUI_message_optional_variant handle_server_message(ServerMessage::Server_message_variant &msg);
-    ClientMessages::Client_server_message_optional_variant handle_GUI_message(GUIMessages::GUI_message_variant &msg);
+    DrawMessage::draw_message_optional_variant handle_server_message(ServerMessage::server_message_variant &msg);
+    ClientMessage::client_message_optional_variant handle_GUI_message(InputMessage::input_message_variant &msg);
+
 
 private:
     std::string player_name_;
@@ -38,11 +39,14 @@ private:
     bool changed;
     GameState state;
 
-    ClientMessages::Client_GUI_message_optional_variant generate_message();
-    void add_accepted_player(ServerMessage::AcceptedPlayerMessage &msg);
-    void make_turn(ServerMessage::TurnMessage &msg);
-    void handle_event(ServerMessage::event_message_variant &event);
+    DrawMessage::draw_message_optional_variant generate_message();
+    void add_accepted_player(ServerMessage::AcceptedPlayer &msg);
+    void make_turn(ServerMessage::Turn &msg);
+    void handle_event(Event::event_message_variant &event);
     void insert_players(std::unordered_map<player_id_t, Player> &players);
+    void change_to_lobby();
+    void change_to_game();
+    void reset_board();
 };
 
 #endif //ROBOTS_GAME_STATE_H

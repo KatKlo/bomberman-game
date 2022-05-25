@@ -13,7 +13,8 @@ int main(int argc, char *argv[]) {
         Client client(io_context, p);
         io_context.run();
     } catch (std::exception &e) {
-        Logger::print_debug("error catched in main", e.what());
+        Logger::print_debug("error catched in main ", e.what());
+        return 1;
     }
     return 0;
 }
