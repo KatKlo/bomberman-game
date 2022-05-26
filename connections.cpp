@@ -1,4 +1,5 @@
 #include "connections.h"
+#include "logger.h"
 
 using udp = boost::asio::ip::udp;
 using tcp = boost::asio::ip::tcp;
@@ -34,6 +35,7 @@ void Client::handle_server_message(ServerMessage::server_message_variant &&msg) 
 }
 
 void Client::close_connections() {
+    Logger::print_debug("closing connections");
     gui_connection_->close();
     server_connection_->close();
 }
@@ -53,12 +55,12 @@ GuiConnection::GuiConnection(boost::asio::io_context &io_context,
                                                socket_(io_context, udp::endpoint(udp::v6(), port)),
                                                remote_endpoint_(),
                                                read_msg_() {
-    Logger::print_debug("creating GUI connection");
+    Logger::print_debug("creating gui connection");
 
     udp::resolver resolver(io_context);
     remote_endpoint_ = *resolver.resolve(gui_address.host, gui_address.port);
 
-    Logger::print_debug("GUI server connected - sending on address ", remote_endpoint_,
+    Logger::print_debug("gui connected - sending on address ", remote_endpoint_,
                         " receiving on port ", socket_.local_endpoint());
 
     do_read_message();
@@ -66,6 +68,7 @@ GuiConnection::GuiConnection(boost::asio::io_context &io_context,
 
 void GuiConnection::close() {
     socket_.close();
+    Logger::print_debug("gui connection closed");
 }
 
 void GuiConnection::send(DrawMessage::draw_message_variant &msg) {
@@ -86,7 +89,7 @@ void GuiConnection::do_read_message() {
                     return;
                 }
 
-                Logger::print_debug("read message from gui");
+                Logger::print_debug("read message from gui - ", length, " bytes");
 
                 if (!ec) {
                     read_msg_.add_packet(buffer_, length);
@@ -107,18 +110,17 @@ void GuiConnection::do_read_message() {
 }
 
 void GuiConnection::do_write_message() {
-    OutputBuffer mess_to_send = write_msgs_.front();
-    write_msgs_.pop_front();
-
     socket_.async_send_to(
-            boost::asio::buffer(mess_to_send.get_buffer(), mess_to_send.size()),
+            boost::asio::buffer(write_msgs_.front().get_buffer(), write_msgs_.front().size()),
             remote_endpoint_,
             [this](boost::system::error_code ec, std::size_t) {
                 if (ec == boost::asio::error::operation_aborted) { // closed socket_
                     return;
                 }
 
-                Logger::print_debug("send message to gui");
+                Logger::print_debug("send message to gui - ", write_msgs_.front().size(),
+                                    " bytes: ", write_msgs_.front());
+                write_msgs_.pop_front();
 
                 if (!ec) {
                     if (!write_msgs_.empty()) {
@@ -156,7 +158,7 @@ void ServerConnection::do_read_message() {
                     return;
                 }
 
-                Logger::print_debug("read message from server");
+                Logger::print_debug("read message from server - ", length, " bytes");
 
                 if (!ec) {
                     read_msg_.add_packet(buffer_, length);
@@ -165,7 +167,6 @@ void ServerConnection::do_read_message() {
                     while (is_sth_to_read_in_buffer) {
                         try {
                             client_.handle_server_message(read_msg_.read_server_message());
-                            Logger::print_debug("message from served parsed");
                         } catch (std::length_error &e) { // invalid argument should break whole program
                             is_sth_to_read_in_buffer = false;
                         }
@@ -189,20 +190,20 @@ void ServerConnection::send(ClientMessage::client_message_variant &msg) {
 
 void ServerConnection::close() {
     socket_.close();
+    Logger::print_debug("server connection closed");
 }
 
 void ServerConnection::do_write_message() {
-    OutputBuffer mess_to_send = write_msgs_.front();
-    write_msgs_.pop_front();
-
     socket_.async_send(
-            boost::asio::buffer(mess_to_send.get_buffer(), mess_to_send.size()),
+            boost::asio::buffer(write_msgs_.front().get_buffer(), write_msgs_.front().size()),
             [this](boost::system::error_code ec, std::size_t) {
                 if (ec == boost::asio::error::operation_aborted) { // closed socket_
                     return;
                 }
 
-                Logger::print_debug("send message to server");
+                Logger::print_debug("send message to server - ", write_msgs_.front().size(),
+                                    " bytes: ", write_msgs_.front());
+                write_msgs_.pop_front();
 
                 if (!ec) {
                     if (!write_msgs_.empty()) {

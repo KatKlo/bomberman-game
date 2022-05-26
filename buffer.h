@@ -1,10 +1,9 @@
 #ifndef ROBOTS_BUFFER_H
 #define ROBOTS_BUFFER_H
 
-#include <string>
-#include <vector>
 #include "structures.h"
 
+// Superclass for all buffers-parsers
 class Buffer {
 public:
     using buffer_size_t = size_t;
@@ -21,6 +20,7 @@ protected:
     void resize_if_needed(buffer_size_t needed_size);
 };
 
+// Class for storing and parsing incoming messages
 class InputBuffer : public Buffer {
 public:
     virtual void add_packet(std::vector<uint8_t> &data, buffer_size_t size) = 0;
@@ -57,6 +57,7 @@ private:
     void check_size(buffer_size_t needed_size);
 };
 
+// Class for storing and parsing outgoing message,
 // supposed to keep at most only one message at the time
 class OutputBuffer : public Buffer {
 public:
@@ -93,6 +94,7 @@ protected:
     void write_client_move_message(ClientMessage::Move &msg);
 };
 
+// Class for storing and parsing incoming messages by UDP protocol,
 // supposed to keep at most only one message at the time
 class UdpInputBuffer : public InputBuffer {
 public:
@@ -109,7 +111,7 @@ private:
     void reset_buffer();
 };
 
-
+// Class for storing and parsing incoming messages by TCP protocol
 class TcpInputBuffer : public InputBuffer {
 public:
     TcpInputBuffer();

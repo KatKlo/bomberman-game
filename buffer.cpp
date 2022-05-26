@@ -1,4 +1,5 @@
 #include "buffer.h"
+#include <iostream>
 
 // Buffer
 
@@ -395,7 +396,7 @@ InputMessage::input_message_variant UdpInputBuffer::read_input_message() {
 
 InputMessage::Move UdpInputBuffer::read_input_move_message() {
     auto direction_number = read_uint8_t();
-    return InputMessage::Move{Direction{direction_number}};
+    return InputMessage::Move{direction_number};
 }
 
 InputMessage::PlaceBomb UdpInputBuffer::read_input_place_bomb_message() {

@@ -4,7 +4,7 @@
 #include <boost/program_options.hpp>
 #include <string>
 
-// class for storing address given as parameter
+// Class for storing address given as parameter
 struct Address {
     static constexpr uint16_t MIN_PORT = 0;
     static constexpr uint16_t MAX_PORT = 65535;
@@ -17,7 +17,7 @@ struct Address {
     friend std::ostream &operator<<(std::ostream &out, const Address &adr);
 };
 
-// reads client program arguments and stores them
+// Reads client program arguments and stores them
 class ClientParameters {
 public:
     ClientParameters();

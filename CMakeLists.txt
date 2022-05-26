@@ -27,7 +27,6 @@ set(SOURCE_FILES
 
 add_executable(robots-client ${SOURCE_FILES})
 
-#target_link_libraries(robots-client PUBLIC -lboost_system -lboost_program_options -lpthread -lstdc++)
 target_link_libraries(robots-client ${Boost_LIBRARIES} -lpthread)
 
 

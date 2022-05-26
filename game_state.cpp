@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <utility>
 #include <unordered_set>
+#include "logger.h"
 
 DrawMessage::draw_message_optional_variant
 GameInfo::handle_server_message(ServerMessage::server_message_variant &msg) {
@@ -18,7 +19,7 @@ GameInfo::handle_server_message(ServerMessage::server_message_variant &msg) {
             return std::nullopt;
         case ServerMessage::TURN :
             make_turn(std::get<ServerMessage::Turn>(msg));
-            Logger::print_info("after turn: ", *this);
+//            Logger::print_info("after turn: ", *this);
             return generate_message();
         case ServerMessage::GAME_ENDED :
             change_to_lobby();
@@ -38,7 +39,7 @@ DrawMessage::draw_message_optional_variant GameInfo::generate_message() {
         return DrawMessage::Lobby(basic_info, players_count, explosion_radius, bomb_timer, players);
     } else { // state == GameState::Game
         auto res = DrawMessage::Game(basic_info, turn, players, bombs, board);
-        Logger::print_info("new message: ", res);
+//        Logger::print_info("new message: ", res);
         return res;
     }
 }
@@ -67,14 +68,14 @@ void GameInfo::make_turn(ServerMessage::Turn &msg) {
             }
         }
 
-        Logger::print_info("before handling events: ", *this);
+//        Logger::print_info("before handling events: ", *this);
 
 
         std::unordered_set<player_id_t> killed_players;
         std::vector<Position> additional_explosions;
         for (auto &it: msg.events) {
             handle_event(it, killed_players, additional_explosions);
-            Logger::print_info("after event: ", *this);
+//            Logger::print_info("after event: ", *this);
         }
         turn = msg.turn;
 
