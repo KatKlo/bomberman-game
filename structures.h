@@ -3,6 +3,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <set>
 #include <vector>
 #include <optional>
 #include <variant>
@@ -22,6 +23,8 @@ struct Player {
 };
 
 struct Position {
+    bool operator<(const Position &rhs) const;
+
     uint16_t x;
     uint16_t y;
 };
@@ -33,21 +36,22 @@ struct Bomb {
 
 struct PlayerInfo {
     Player player;
-    Position position;
-    score_t score;
+    Position position{};
+    score_t score{};
 };
 
 enum PositionType {
     Empty = 0,
     Block = 1,
-    Explosion = 2
 };
 
 struct GameBasicInfo {
+    GameBasicInfo() = default;
+
     std::string server_name;
-    uint16_t size_x;
-    uint16_t size_y;
-    uint16_t game_length;
+    uint16_t size_x{};
+    uint16_t size_y{};
+    uint16_t game_length{};
 };
 
 namespace Event {
@@ -138,7 +142,8 @@ namespace DrawMessage {
              uint16_t turn,
              std::unordered_map<player_id_t, PlayerInfo> &players_info,
              std::unordered_map<bomb_id_t, Bomb> &bombs_positions,
-             std::vector<std::vector<PositionType>> &board);
+             std::vector<std::vector<PositionType>> &board,
+             std::set<Position> &explosions);
 
         std::string server_name;
         uint16_t size_x;
@@ -176,7 +181,7 @@ namespace ServerMessage {
     };
 
     struct AcceptedPlayer {
-        player_id_t id;
+        player_id_t id{};
         Player player;
     };
 
