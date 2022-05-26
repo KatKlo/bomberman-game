@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <string>
-#include "utils.h"
+#include "logger.h"
 #include <unordered_map>
 #include <vector>
 #include <optional>
@@ -14,15 +14,6 @@ using event_id_t = uint8_t;
 using player_id_t = uint8_t;
 using score_t = uint32_t;
 using bomb_id_t = uint32_t;
-
-struct Address {
-    std::string host;
-    std::string port;
-
-    friend std::istream &operator>>(std::istream &in, Address &address);
-
-    friend std::ostream &operator<<(std::ostream &out, const Address &adr);
-};
 
 struct Player {
     std::string name;

@@ -1,5 +1,5 @@
-#ifndef ROBOTS_UTILS_H
-#define ROBOTS_UTILS_H
+#ifndef ROBOTS_LOGGER_H
+#define ROBOTS_LOGGER_H
 
 #include "string"
 #include <iostream>
@@ -35,16 +35,4 @@ public:
     }
 };
 
-namespace Checker {
-    void check_errno();
-    void ensure(bool x);
-    void check_with_errno(int x);
-}
-
-namespace Utils {
-    uint64_t read_number(std::string &number_str, uint64_t min_limit,
-                         uint64_t max_limit, std::string &name);
-}
-
-
-#endif //ROBOTS_UTILS_H
+#endif //ROBOTS_LOGGER_H

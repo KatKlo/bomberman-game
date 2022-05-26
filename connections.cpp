@@ -2,7 +2,7 @@
 #include <boost/asio.hpp>
 #include "structures.h"
 #include "buffer.h"
-#include "utils.h"
+#include "logger.h"
 
 using boost::asio::ip::udp;
 using boost::asio::ip::tcp;
@@ -74,7 +74,6 @@ ServerConnection::ServerConnection(boost::asio::io_context &io_context, Address 
     Logger::print_debug("connecting to server (", server_address, ")");
     tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve(server_address.host, server_address.port);
-//    do_connect(endpoints);
     boost::asio::connect(socket, endpoints);
     Logger::print_debug("server connected");
     boost::asio::ip::tcp::no_delay option(true);

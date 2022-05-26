@@ -1,24 +1,6 @@
 #include "structures.h"
-#include "utils.h"
-
-std::istream &operator>>(std::istream &in, Address &address) {
-    std::string token;
-    in >> token;
-
-    size_t delimiter_index = token.find_last_of(':');
-    if (delimiter_index == std::string::npos || delimiter_index == token.size() - 1) {
-        Logger::print_error("no port number in address \"", token, "\"");
-    }
-
-    address.port = token.substr(delimiter_index + 1, token.size() - 1 - delimiter_index);
-    address.host = token.substr(0, delimiter_index);
-
-    return in;
-}
-
-std::ostream &operator<<(std::ostream &out, const Address &adr) {
-    return out << adr.host << ":" << adr.port;
-}
+#include "logger.h"
+#include <exception>
 
 DrawMessage::Lobby::Lobby(GameBasicInfo &info, uint8_t playersCount, uint16_t explosionRadius, uint16_t bombTimer,
                           std::unordered_map<player_id_t, PlayerInfo> &p) : server_name(info.server_name),

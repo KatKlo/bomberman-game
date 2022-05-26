@@ -1,17 +1,31 @@
 #ifndef ROBOTS_PARAMETERS_H
 #define ROBOTS_PARAMETERS_H
 
-#include <iostream>
 #include <boost/program_options.hpp>
 #include <string>
-#include "structures.h"
 
-namespace po = boost::program_options;
+// class for storing address given as parameter
+struct Address {
+    static constexpr uint16_t MIN_PORT = 0;
+    static constexpr uint16_t MAX_PORT = 65535;
+
+    std::string host;
+    std::string port;
+
+    friend std::istream &operator>>(std::istream &in, Address &address);
+
+    friend std::ostream &operator<<(std::ostream &out, const Address &adr);
+};
 
 // reads client program arguments and stores them
 class ClientParameters {
 public:
-    ClientParameters(int argc, char *argv[]);
+    ClientParameters();
+
+    // returns:
+    //  - TRUE if all parameters are correct and there's no help option
+    //  - FALSE if any parameter is incorrect or there's help option
+    bool read_program_arguments(int argc, char *argv[]);
 
     std::string get_player_name();
     Address get_gui_address();
@@ -21,9 +35,8 @@ public:
 private:
     void initialize_options_description();
 
-    po::options_description opt_description{"Allowed options"};
-    po::variables_map var_map;
+    boost::program_options::options_description opt_description;
+    boost::program_options::variables_map var_map;
 };
-
 
 #endif //ROBOTS_PARAMETERS_H

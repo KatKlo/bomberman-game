@@ -3,26 +3,6 @@
 #include <utility>
 #include <unordered_set>
 
-//GameInfo::GameInfo(ServerMessage::Hello &msg, std::string &player_name) :
-//        player_name_(player_name),
-//        basic_info{msg.server_name, msg.size_x, msg.size_y, msg.game_length},
-//        players_count(msg.players_count),
-//        explosion_radius(msg.explosion_radius),
-//        bomb_timer(msg.bomb_timer),
-//        turn(0),
-//        players(),
-//        bombs(),
-//        board(),
-//        changed(true),
-//        state(GameState::Lobby) {
-//    board.resize(basic_info.size_x);
-//    for (auto &sth: board) {
-//        for (int i = 0; i < basic_info.size_y; i++) {
-//            sth.emplace_back(PositionType::Empty);
-//        }
-//    }
-//}
-
 DrawMessage::draw_message_optional_variant
 GameInfo::handle_server_message(ServerMessage::server_message_variant &msg) {
     switch (msg.index()) {
@@ -42,6 +22,7 @@ GameInfo::handle_server_message(ServerMessage::server_message_variant &msg) {
             return generate_message();
         case ServerMessage::GAME_ENDED :
             change_to_lobby();
+            reset_board();
             return generate_message();
         default:
             Logger::print_error("Internal problem with variant");
@@ -224,7 +205,6 @@ GameInfo::handle_GUI_message(InputMessage::input_message_variant &msg) {
 void GameInfo::change_to_game() {
     state = GameState::Game;
     changed = true;
-    reset_board();
 }
 
 void GameInfo::change_to_lobby() {

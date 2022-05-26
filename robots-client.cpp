@@ -1,14 +1,17 @@
 #include "parameters.h"
-#include "utils.h"
+#include "logger.h"
 #include <boost/asio.hpp>
 #include "connections.h"
 
 #include <iostream>
 
 int main(int argc, char *argv[]) {
-    try {
-        ClientParameters p{argc, argv};
+    ClientParameters p;
+    if (!p.read_program_arguments(argc, argv)) {
+        return 0;
+    }
 
+    try {
         boost::asio::io_context io_context;
         Client client(io_context, p);
         io_context.run();
