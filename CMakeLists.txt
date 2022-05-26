@@ -15,8 +15,7 @@ set(SOURCE_FILES
         parameters.cpp
         structures.h
         structures.cpp
-        utils.h
-        utils.cpp
+        logger.h
         buffer.h
         buffer.cpp
         game_state.cpp

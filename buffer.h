@@ -2,9 +2,8 @@
 #define ROBOTS_BUFFER_H
 
 #include <string>
+#include <vector>
 #include "structures.h"
-#include <deque>
-#include <ostream>
 
 class Buffer {
 public:
@@ -14,11 +13,12 @@ public:
     friend std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
 
 protected:
-    void resize_if_needed(buffer_size_t needed_size);
-
     std::vector<uint8_t> buffer_;
     buffer_size_t capacity_;
     buffer_size_t size_;
+
+    explicit Buffer(buffer_size_t capacity);
+    void resize_if_needed(buffer_size_t needed_size);
 };
 
 class InputBuffer : public Buffer {
@@ -28,6 +28,7 @@ public:
 protected:
     buffer_size_t read_index;
 
+    InputBuffer();
     void add_to_buffer(std::vector<uint8_t> &data, buffer_size_t size);
 
     uint8_t read_uint8_t();
@@ -59,16 +60,14 @@ private:
 // supposed to keep at most only one message at the time
 class OutputBuffer : public Buffer {
 public:
+    explicit OutputBuffer(DrawMessage::draw_message_variant &msg);
+    explicit OutputBuffer(ClientMessage::client_message_variant &msg);
+
     buffer_size_t size();
     uint8_t *get_buffer();
 
-    void write_draw_message(DrawMessage::draw_message_variant &msg);
-    void write_client_message(ClientMessage::client_message_variant &msg);
-
 protected:
     buffer_size_t write_index;
-
-    void reset_buffer();
 
     void write_uint8_t(uint8_t number);
     void write_uint16_t(uint16_t number);
@@ -97,13 +96,15 @@ protected:
 // supposed to keep at most only one message at the time
 class UdpInputBuffer : public InputBuffer {
 public:
+    UdpInputBuffer();
+
     InputMessage::input_message_variant read_input_message();
     void add_packet(std::vector<uint8_t> &data, buffer_size_t size) override;
 
 private:
-    InputMessage::Move read_gui_move_message();
-    InputMessage::PlaceBomb read_gui_place_bomb_message();
-    InputMessage::PlaceBlock read_gui_place_block_message();
+    InputMessage::Move read_input_move_message();
+    static InputMessage::PlaceBomb read_input_place_bomb_message();
+    static InputMessage::PlaceBlock read_input_place_block_message();
 
     void reset_buffer();
 };
@@ -111,8 +112,10 @@ private:
 
 class TcpInputBuffer : public InputBuffer {
 public:
+    TcpInputBuffer();
+
     ServerMessage::server_message_variant read_server_message();
-    void add_packet(std::vector<uint8_t> &data, buffer_size_t size);
+    void add_packet(std::vector<uint8_t> &data, buffer_size_t size) override;
 
 private:
     ServerMessage::Hello read_server_hello_message();

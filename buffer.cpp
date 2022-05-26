@@ -1,6 +1,4 @@
-#include <cstring>
 #include "buffer.h"
-#include "structures.h"
 
 // Buffer
 
@@ -17,6 +15,8 @@ void Buffer::resize_if_needed(Buffer::buffer_size_t needed_size) {
         buffer_.resize(capacity_, 0);
     }
 }
+
+Buffer::Buffer(unsigned long capacity) : buffer_(capacity), capacity_(capacity), size_(0) {}
 
 // InputBuffer
 
@@ -185,6 +185,8 @@ std::unordered_map<player_id_t, score_t> InputBuffer::read_player_scores_map() {
     return map;
 }
 
+InputBuffer::InputBuffer() : Buffer(0), read_index(0) {}
+
 // OutputBuffer
 
 Buffer::buffer_size_t OutputBuffer::size() {
@@ -193,11 +195,6 @@ Buffer::buffer_size_t OutputBuffer::size() {
 
 uint8_t* OutputBuffer::get_buffer() {
     return (uint8_t *) &buffer_[0];
-}
-
-void OutputBuffer::reset_buffer() {
-    write_index = 0;
-    size_ = 0;
 }
 
 void OutputBuffer::write_uint8_t(uint8_t number) {
@@ -323,9 +320,7 @@ void OutputBuffer::write_draw_game_message(DrawMessage::Game &msg) {
     write_player_scores_map(msg.scores);
 }
 
-void OutputBuffer::write_client_message(ClientMessage::client_message_variant &msg) {
-    reset_buffer();
-
+OutputBuffer::OutputBuffer(ClientMessage::client_message_variant &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
     switch (msg.index()) {
         case ClientMessage::JOIN:
             write_client_join_message(std::get<ClientMessage::Join>(msg));
@@ -344,8 +339,7 @@ void OutputBuffer::write_client_message(ClientMessage::client_message_variant &m
     size_ = write_index;
 }
 
-void OutputBuffer::write_draw_message(DrawMessage::draw_message_variant &msg) {
-    reset_buffer();
+OutputBuffer::OutputBuffer(DrawMessage::draw_message_variant &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0){
     switch (msg.index()) {
         case DrawMessage::LOBBY:
             write_draw_lobby_message(std::get<DrawMessage::Lobby>(msg));
@@ -375,15 +369,15 @@ InputMessage::input_message_variant UdpInputBuffer::read_input_message() {
     InputMessage::input_message_variant result;
     switch (read_uint8_t()) {
         case InputMessage::PLACE_BOMB: {
-            result = read_gui_place_bomb_message();
+            result = read_input_place_bomb_message();
             break;
         }
         case InputMessage::PLACE_BLOCK: {
-            result = read_gui_place_block_message();
+            result = read_input_place_block_message();
             break;
         }
         case InputMessage::MOVE: {
-            result = read_gui_move_message();
+            result = read_input_move_message();
             break;
         }
         default: {
@@ -399,18 +393,20 @@ InputMessage::input_message_variant UdpInputBuffer::read_input_message() {
     return result;
 }
 
-InputMessage::Move UdpInputBuffer::read_gui_move_message() {
+InputMessage::Move UdpInputBuffer::read_input_move_message() {
     auto direction_number = read_uint8_t();
     return InputMessage::Move{Direction{direction_number}};
 }
 
-InputMessage::PlaceBomb UdpInputBuffer::read_gui_place_bomb_message() {
+InputMessage::PlaceBomb UdpInputBuffer::read_input_place_bomb_message() {
     return InputMessage::PlaceBomb{};
 }
 
-InputMessage::PlaceBlock UdpInputBuffer::read_gui_place_block_message() {
+InputMessage::PlaceBlock UdpInputBuffer::read_input_place_block_message() {
     return InputMessage::PlaceBlock{};
 }
+
+UdpInputBuffer::UdpInputBuffer() : InputBuffer() {}
 
 // TcpInputBuffer
 
@@ -493,3 +489,5 @@ ServerMessage::GameEnded TcpInputBuffer::read_server_game_ended_message() {
     std::unordered_map<player_id_t, score_t> scores = read_player_scores_map();
     return ServerMessage::GameEnded{scores};
 }
+
+TcpInputBuffer::TcpInputBuffer() : InputBuffer() {}

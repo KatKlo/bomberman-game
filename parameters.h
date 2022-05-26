@@ -35,8 +35,8 @@ public:
 private:
     void initialize_options_description();
 
-    boost::program_options::options_description opt_description;
-    boost::program_options::variables_map var_map;
+    boost::program_options::options_description opt_description_;
+    boost::program_options::variables_map var_map_;
 };
 
 #endif //ROBOTS_PARAMETERS_H
