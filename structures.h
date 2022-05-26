@@ -30,6 +30,10 @@ struct Player {
 };
 
 struct Position {
+    Position() = default;
+
+    Position(uint16_t x, uint16_t y);
+
     uint16_t x;
     uint16_t y;
 };
@@ -120,6 +124,8 @@ namespace DrawMessage {
              std::unordered_map<player_id_t, PlayerInfo> &players_info,
              std::unordered_map<bomb_id_t, Bomb> &bombs_positions,
              std::vector<std::vector<PositionType>> &board);
+
+        friend std::ostream &operator<<(std::ostream &os, const Game &game);
 
         std::string server_name;
         uint16_t size_x;

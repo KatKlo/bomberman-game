@@ -50,7 +50,7 @@ void GUIConnection::do_read_message() {
                     Logger::print_debug("Received message from gui:\n", read_msg);
                     try {
                         auto sth = read_msg.read_input_message();
-                        client_.handle_GUI_message(sth);
+                        client_.handle_input_message(sth);
                     } catch (std::logic_error &e) {
                         Logger::print_debug("Bad message from gui - ", e.what());
                     }
@@ -122,7 +122,12 @@ void ServerConnection::close() {
     socket.close();
 }
 
-Client::Client(boost::asio::io_context &io_context, ClientParameters &parameters) {
+Client::Client(boost::asio::io_context &io_context, ClientParameters &parameters) :
+        gui_connection(),
+        server_connection(),
+        gameInfo(parameters.get_player_name()),
+        name(parameters.get_player_name()) {
+
     server_connection = std::make_shared<ServerConnection>(io_context,
                                                            parameters.get_server_address(),
                                                            *this);
@@ -131,33 +136,31 @@ Client::Client(boost::asio::io_context &io_context, ClientParameters &parameters
                                                      parameters.get_gui_address(),
                                                      parameters.get_port(),
                                                      *this);
-
-    gameInfo = std::nullopt;
-    name = parameters.get_player_name();
 }
 
-void Client::handle_GUI_message(InputMessage::input_message_variant &msg) {
-    if (!gameInfo.has_value()) {
+void Client::handle_input_message(InputMessage::input_message_variant &msg) {
+    const std::lock_guard<std::mutex> lock(guard);
+    Logger::print_info("gameInfo: ", gameInfo);
+
+    if (!gameInfo.is_connected()) {
         Logger::print_debug("no connection with server");
         return;
     }
 
-    ClientMessage::client_message_optional_variant new_msg = gameInfo.value().handle_GUI_message(msg);
+    ClientMessage::client_message_optional_variant new_msg = gameInfo.handle_GUI_message(msg);
     if (new_msg.has_value()) {
         server_connection->send(new_msg.value());
     }
+
 }
 
 void Client::handle_server_message(ServerMessage::server_message_variant &msg) {
-    if (!gameInfo.has_value() && msg.index() == ServerMessage::HELLO) {
-        gameInfo = std::make_optional<GameInfo>(std::get<ServerMessage::Hello>(msg), name);
-    }
+    const std::lock_guard<std::mutex> lock(guard);
+    Logger::print_info("gameInfo: ", gameInfo);
 
-    if (gameInfo.has_value()) {
-        auto new_msg = gameInfo.value().handle_server_message(msg);
-        if (new_msg.has_value()) {
-            gui_connection->send(new_msg.value());
-        }
+    auto new_msg = gameInfo.handle_server_message(msg);
+    if (new_msg.has_value()) {
+        gui_connection->send(new_msg.value());
     }
 }
 

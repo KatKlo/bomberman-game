@@ -6,23 +6,28 @@
 #include "buffer.h"
 #include "game_state.h"
 #include "parameters.h"
+#include <mutex>
 
 class GUIConnection;
+
 class ServerConnection;
 
 class Client {
 public:
     Client(boost::asio::io_context &io_context, ClientParameters &parameters);
 
-    void handle_GUI_message(InputMessage::input_message_variant &msg);
+    void handle_input_message(InputMessage::input_message_variant &msg);
+
     void handle_server_message(ServerMessage::server_message_variant &msg);
+
     void close_connections();
 
 private:
     std::shared_ptr<GUIConnection> gui_connection;
     std::shared_ptr<ServerConnection> server_connection;
-    std::optional<GameInfo> gameInfo;
+    GameInfo gameInfo;
     std::string name;
+    std::mutex guard;
 };
 
 class GUIConnection {
@@ -31,6 +36,7 @@ public:
 
 //    void close_connection();
     void send(DrawMessage::draw_message_variant &msg);
+
     void close();
 
 private:
@@ -51,6 +57,7 @@ public:
 
 //    void close_connection();
     void send(ClientMessage::client_message_variant &msg);
+
     void close();
 
 private:

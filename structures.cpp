@@ -72,3 +72,13 @@ DrawMessage::Game::Game(GameBasicInfo &info,
         }
     }
 }
+
+std::ostream &DrawMessage::operator<<(std::ostream &os, const DrawMessage::Game &game) {
+    os << "server_name: " << game.server_name << " size_x: " << game.size_x << " size_y: " << game.size_y
+       << " game_length: " << game.game_length << " turn: " << game.turn << " players_size: " << game.players.size()
+       << " player_positions_size: " << game.player_positions.size() << " blocks_size: " << game.blocks.size() << " bombs_size: " << game.bombs.size()
+       << " explosions_size: " << game.explosions.size() << " scores_size: " << game.scores.size();
+    return os;
+}
+
+Position::Position(uint16_t x, uint16_t y) : x(x), y(y) {}

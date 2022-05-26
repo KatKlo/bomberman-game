@@ -125,7 +125,7 @@ Event::event_message_variant InputBuffer::read_event() {
 
 std::vector<Event::event_message_variant> InputBuffer::read_events_vector() {
     auto vec_size = read_uint32_t();
-    std::vector<Event::event_message_variant> vector(vec_size);
+    std::vector<Event::event_message_variant> vector;
 
     for (int i = 0; i < vec_size; i++) {
         auto event = read_event();
@@ -137,7 +137,7 @@ std::vector<Event::event_message_variant> InputBuffer::read_events_vector() {
 
 std::vector<player_id_t> InputBuffer::read_players_id_vector() {
     auto vec_size = read_uint32_t();
-    std::vector<player_id_t> vector(vec_size);
+    std::vector<player_id_t> vector;
 
     for (int i = 0; i < vec_size; i++) {
         auto player_id = read_uint8_t();
@@ -149,7 +149,7 @@ std::vector<player_id_t> InputBuffer::read_players_id_vector() {
 
 std::vector<Position> InputBuffer::read_positions_vector() {
     auto vec_size = read_uint32_t();
-    std::vector<Position> vector(vec_size);
+    std::vector<Position> vector;
 
     for (int i = 0; i < vec_size; i++) {
         auto position = read_position();
@@ -161,7 +161,7 @@ std::vector<Position> InputBuffer::read_positions_vector() {
 
 std::unordered_map<player_id_t, Player> InputBuffer::read_players_map() {
     auto map_size = read_uint32_t();
-    std::unordered_map<player_id_t, Player> map(map_size);
+    std::unordered_map<player_id_t, Player> map;
 
     for (int i = 0; i < map_size; i++) {
         auto player_id = read_uint8_t();
@@ -174,7 +174,7 @@ std::unordered_map<player_id_t, Player> InputBuffer::read_players_map() {
 
 std::unordered_map<player_id_t, score_t> InputBuffer::read_player_scores_map() {
     auto map_size = read_uint32_t();
-    std::unordered_map<player_id_t, score_t> map(map_size);
+    std::unordered_map<player_id_t, score_t> map;
 
     for (int i = 0; i < map_size; i++) {
         auto player_id = read_uint8_t();
@@ -426,6 +426,7 @@ void TcpInputBuffer::clean_after_correct_read() {
 
 ServerMessage::server_message_variant TcpInputBuffer::read_server_message() {
     ServerMessage::server_message_variant result;
+    read_index = 0;
     switch (read_uint8_t()) {
         case ServerMessage::HELLO: {
             result = read_server_hello_message();
