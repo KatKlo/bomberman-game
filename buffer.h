@@ -63,6 +63,7 @@ class OutputBuffer : public Buffer {
 public:
     explicit OutputBuffer(DrawMessage::draw_message_variant &msg);
     explicit OutputBuffer(ClientMessage::client_message_variant &msg);
+    explicit OutputBuffer(ServerMessage::server_message_variant &msg);
 
     buffer_size_t size();
     uint8_t *get_buffer();
@@ -79,8 +80,17 @@ protected:
     void write_position(Position &position);
     void write_bomb(Bomb &bomb);
 
+    void write_bomb_placed_event(Event::BombPlacedEvent &event);
+    void write_bomb_exploded_event(Event::BombExplodedEvent &event);
+    void write_player_moved_event(Event::PlayerMovedEvent &event);
+    void write_block_placed_event(Event::BlockPlacedEvent &event);
+
+    void write_event(Event::event_message_variant &event);
+
+    void write_players_id_vector(std::vector<player_id_t> &player_ids);
     void write_positions_vector(std::vector<Position> &positions);
     void write_bombs_vector(std::vector<Bomb> &bombs);
+    void write_events_vector(std::vector<Event::event_message_variant> &events);
 
     void write_players_map(std::unordered_map<player_id_t, Player> &players);
     void write_player_positions_map(std::unordered_map<player_id_t, Position> &player_positions);
@@ -88,10 +98,17 @@ protected:
 
     void write_draw_lobby_message(DrawMessage::Lobby &msg);
     void write_draw_game_message(DrawMessage::Game &msg);
+
     void write_client_join_message(ClientMessage::Join &msg);
     void write_client_place_bomb_message(ClientMessage::PlaceBomb &msg);
     void write_client_place_block_message(ClientMessage::PlaceBlock &msg);
     void write_client_move_message(ClientMessage::Move &msg);
+
+    void write_server_hello_message(ServerMessage::Hello &msg);
+    void write_server_accepted_player_message(ServerMessage::AcceptedPlayer &msg);
+    void write_server_game_started_message(ServerMessage::GameStarted &msg);
+    void write_server_turn_message(ServerMessage::Turn &msg);
+    void write_server_game_ended_message(ServerMessage::GameEnded &msg);
 };
 
 // Class for storing and parsing incoming messages by UDP protocol,
@@ -117,6 +134,7 @@ public:
     TcpInputBuffer();
 
     ServerMessage::server_message_variant read_server_message();
+    ClientMessage::client_message_variant read_client_message();
     void add_packet(std::vector<uint8_t> &data, buffer_size_t size) override;
 
 private:
@@ -125,6 +143,11 @@ private:
     ServerMessage::GameStarted read_server_game_started_message();
     ServerMessage::Turn read_server_turn_message();
     ServerMessage::GameEnded read_server_game_ended_message();
+
+    ClientMessage::Join read_client_join_message();
+    ClientMessage::PlaceBomb read_client_place_bomb_message();
+    ClientMessage::PlaceBlock read_client_place_block_message();
+    ClientMessage::Move read_client_move_message();
 
     void clean_after_correct_read();
 };

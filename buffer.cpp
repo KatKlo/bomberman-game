@@ -194,7 +194,7 @@ Buffer::buffer_size_t OutputBuffer::size() {
     return size_;
 }
 
-uint8_t* OutputBuffer::get_buffer() {
+uint8_t *OutputBuffer::get_buffer() {
     return (uint8_t *) &buffer_[0];
 }
 
@@ -238,6 +238,61 @@ void OutputBuffer::write_bomb(Bomb &bomb) {
     write_uint16_t(bomb.timer);
 }
 
+void OutputBuffer::write_bomb_placed_event(Event::BombPlacedEvent &event) {
+    write_uint8_t(Event::BOMB_PLACED);
+    write_uint32_t(event.id);
+    write_position(event.position);
+}
+
+void OutputBuffer::write_bomb_exploded_event(Event::BombExplodedEvent &event) {
+    write_uint8_t(Event::BOMB_EXPLODED);
+    write_uint32_t(event.id);
+    write_players_id_vector(event.robots_destroyed);
+    write_positions_vector(event.blocks_destroyed);
+}
+
+void OutputBuffer::write_player_moved_event(Event::PlayerMovedEvent &event) {
+    write_uint8_t(Event::PLAYER_MOVED);
+    write_uint8_t(event.id);
+    write_position(event.position);
+}
+
+void OutputBuffer::write_block_placed_event(Event::BlockPlacedEvent &event) {
+    write_uint8_t(Event::BLOCK_PLACED);
+    write_position(event.position);
+}
+
+void OutputBuffer::write_event(Event::event_message_variant &event) {
+    switch (event.index()) {
+        case Event::BOMB_PLACED: {
+            write_bomb_placed_event(std::get<Event::BombPlacedEvent>(event));
+            break;
+        }
+        case Event::BOMB_EXPLODED: {
+            write_bomb_exploded_event(std::get<Event::BombExplodedEvent>(event));
+            break;
+        }
+        case Event::PLAYER_MOVED: {
+            write_player_moved_event(std::get<Event::PlayerMovedEvent>(event));
+            break;
+        }
+        case Event::BLOCK_PLACED: {
+            write_block_placed_event(std::get<Event::BlockPlacedEvent>(event));
+            break;
+        }
+        default: {
+            throw std::invalid_argument("bad event number");
+        }
+    }
+}
+
+void OutputBuffer::write_players_id_vector(std::vector<player_id_t> &player_ids) {
+    write_uint32_t(player_ids.size());
+    for (auto &player_id : player_ids) {
+        write_uint8_t(player_id);
+    }
+}
+
 void OutputBuffer::write_positions_vector(std::vector<Position> &positions) {
     write_uint32_t(positions.size());
     for (auto &it: positions) {
@@ -249,6 +304,13 @@ void OutputBuffer::write_bombs_vector(std::vector<Bomb> &bombs) {
     write_uint32_t(bombs.size());
     for (auto &it: bombs) {
         write_bomb(it);
+    }
+}
+
+void OutputBuffer::write_events_vector(std::vector<Event::event_message_variant> &events) {
+    write_uint32_t(events.size());
+    for (auto &it: events) {
+        write_event(it);
     }
 }
 
@@ -321,6 +383,40 @@ void OutputBuffer::write_draw_game_message(DrawMessage::Game &msg) {
     write_player_scores_map(msg.scores);
 }
 
+void OutputBuffer::write_server_hello_message(ServerMessage::Hello &msg) {
+    write_uint8_t(ServerMessage::HELLO);
+    write_string(msg.server_name);
+    write_uint16_t(msg.size_x);
+    write_uint16_t(msg.size_y);
+    write_uint16_t(msg.game_length);
+    write_uint16_t(msg.explosion_radius);
+    write_uint16_t(msg.bomb_timer);
+}
+
+void OutputBuffer::write_server_accepted_player_message(ServerMessage::AcceptedPlayer &msg) {
+    write_uint8_t(ServerMessage::ACCEPTED_PLAYER);
+    write_uint8_t(msg.id);
+    write_player(msg.player);
+}
+
+void OutputBuffer::write_server_game_started_message(ServerMessage::GameStarted &msg) {
+    write_uint8_t(ServerMessage::GAME_STARTED);
+    write_players_map(msg.players);
+}
+
+void OutputBuffer::write_server_turn_message(ServerMessage::Turn &msg) {
+    write_uint8_t(ServerMessage::TURN);
+    write_uint16_t(msg.turn);
+    write_events_vector(msg.events);
+}
+
+
+void OutputBuffer::write_server_game_ended_message(ServerMessage::GameEnded &msg) {
+    write_uint8_t(ServerMessage::GAME_ENDED);
+    write_player_scores_map(msg.scores);
+}
+
+
 OutputBuffer::OutputBuffer(ClientMessage::client_message_variant &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
     switch (msg.index()) {
         case ClientMessage::JOIN:
@@ -340,13 +436,35 @@ OutputBuffer::OutputBuffer(ClientMessage::client_message_variant &msg) : Buffer(
     size_ = write_index;
 }
 
-OutputBuffer::OutputBuffer(DrawMessage::draw_message_variant &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0){
+OutputBuffer::OutputBuffer(DrawMessage::draw_message_variant &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
     switch (msg.index()) {
         case DrawMessage::LOBBY:
             write_draw_lobby_message(std::get<DrawMessage::Lobby>(msg));
             break;
         case DrawMessage::GAME:
             write_draw_game_message(std::get<DrawMessage::Game>(msg));
+            break;
+    }
+
+    size_ = write_index;
+}
+
+OutputBuffer::OutputBuffer(ServerMessage::server_message_variant &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
+    switch (msg.index()) {
+        case ServerMessage::HELLO:
+            write_server_hello_message(std::get<ServerMessage::Hello>(msg));
+            break;
+        case ServerMessage::ACCEPTED_PLAYER:
+            write_server_accepted_player_message(std::get<ServerMessage::AcceptedPlayer>(msg));
+            break;
+        case ServerMessage::GAME_STARTED:
+            write_server_game_started_message(std::get<ServerMessage::GameStarted>(msg));
+            break;
+        case ServerMessage::TURN:
+            write_server_turn_message(std::get<ServerMessage::Turn>(msg));
+            break;
+        case ServerMessage::GAME_ENDED:
+            write_server_game_ended_message(std::get<ServerMessage::GameEnded>(msg));
             break;
     }
 
@@ -454,6 +572,35 @@ ServerMessage::server_message_variant TcpInputBuffer::read_server_message() {
     return result;
 }
 
+ClientMessage::client_message_variant TcpInputBuffer::read_client_message() {
+    ClientMessage::client_message_variant result;
+    read_index = 0;
+    switch (read_uint8_t()) {
+        case ClientMessage::JOIN: {
+            result = read_client_join_message();
+            break;
+        }
+        case ClientMessage::PLACE_BOMB: {
+            result = read_client_place_bomb_message();
+            break;
+        }
+        case ClientMessage::PLACE_BLOCK: {
+            result = read_client_place_block_message();
+            break;
+        }
+        case ClientMessage::MOVE: {
+            result = read_client_move_message();
+            break;
+        }
+        default: {
+            throw std::invalid_argument("bad client message type");
+        }
+    }
+
+    clean_after_correct_read();
+    return result;
+}
+
 ServerMessage::Hello TcpInputBuffer::read_server_hello_message() {
     std::string server_name = read_string();
     uint8_t players_count = read_uint8_t();
@@ -489,6 +636,24 @@ ServerMessage::Turn TcpInputBuffer::read_server_turn_message() {
 ServerMessage::GameEnded TcpInputBuffer::read_server_game_ended_message() {
     std::unordered_map<player_id_t, score_t> scores = read_player_scores_map();
     return ServerMessage::GameEnded{scores};
+}
+
+ClientMessage::Join TcpInputBuffer::read_client_join_message(){
+    std::string name = read_string();
+    return ClientMessage::Join{name};
+}
+
+ClientMessage::PlaceBomb TcpInputBuffer::read_client_place_bomb_message(){
+    return ClientMessage::PlaceBomb{};
+}
+
+ClientMessage::PlaceBlock TcpInputBuffer::read_client_place_block_message(){
+    return ClientMessage::PlaceBlock{};
+}
+
+ClientMessage::Move TcpInputBuffer::read_client_move_message(){
+    uint8_t direction_number = read_uint8_t();
+    return ClientMessage::Move{direction_number};
 }
 
 TcpInputBuffer::TcpInputBuffer() : InputBuffer() {}
