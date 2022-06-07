@@ -28,7 +28,7 @@ public:
 private:
     std::shared_ptr<GuiConnection> gui_connection_;
     std::shared_ptr<ServerConnection> server_connection_;
-    GameInfo gameInfo_;
+    ClientGameInfo gameInfo_;
 };
 
 // Superclass for connections with gui and server

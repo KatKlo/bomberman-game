@@ -126,7 +126,7 @@ void ServerParameters::initialize_options_description() {
             ("game-length,l", po::value<uint16_t>()->required(), "set game length")
             ("server-name,n", po::value<std::string>()->required(), "set server name")
             ("port,p", po::value<uint16_t>()->required(), "set port number for receiving clients messages")
-            ("seed,s", po::value<uint32_t>(), "set seed for random generator")
+            ("seed,s", po::value<uint32_t>()->required(), "set seed for random generator")
             ("size-x,x", po::value<uint16_t>()->required(), "set map size x")
             ("size-y,y", po::value<uint16_t>()->required(), "set map size y");
 

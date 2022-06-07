@@ -22,8 +22,8 @@ DrawMessage::Game::Game(GameBasicInfo &info,
                         uint16_t turn,
                         std::unordered_map<player_id_t, PlayerInfo> &players_info,
                         std::unordered_map<bomb_id_t, Bomb> &bombs_positions,
-                        std::vector<std::vector<PositionType>> &board,
-                        std::set<Position> &explosions_positions) : server_name(info.server_name),
+                        std::unordered_set<Position, Position::HashFunction> &blocks_positions,
+                        std::unordered_set<Position, Position::HashFunction> &explosions_positions) : server_name(info.server_name),
                                                                     size_x(info.size_x),
                                                                     size_y(info.size_y),
                                                                     game_length(info.game_length),
@@ -48,19 +48,17 @@ DrawMessage::Game::Game(GameBasicInfo &info,
         explosions.emplace_back(it);
     }
 
-    for (uint16_t i = 0; i < size_x; i++) {
-        for (uint16_t j = 0; j < size_y; j++) {
-            if (board[i][j] == PositionType::Block) {
-                blocks.emplace_back(Position{i, j});
-            }
-        }
+    for (auto &it: blocks_positions) {
+        blocks.emplace_back(it);
     }
 }
 
-bool Position::operator<(const Position &rhs) const {
-    if (x < rhs.x)
-        return true;
-    if (rhs.x < x)
-        return false;
-    return y < rhs.y;
+bool Position::operator==(const Position &rhs) const {
+    return x == rhs.x && y == rhs.y;
+}
+
+size_t Position::HashFunction::operator()(const Position &pos) const {
+    size_t hash_x = std::hash<uint16_t>()(pos.x);
+    size_t hash_y = std::hash<uint16_t>()(pos.y) << 1;
+    return hash_x ^ hash_y;
 }

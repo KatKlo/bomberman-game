@@ -3,7 +3,7 @@
 
 #include <string>
 #include <unordered_map>
-#include <set>
+#include <unordered_set>
 #include <vector>
 #include <optional>
 #include <variant>
@@ -23,7 +23,11 @@ struct Player {
 };
 
 struct Position {
-    bool operator<(const Position &rhs) const;
+    bool operator==(const Position &rhs) const;
+
+    struct HashFunction {
+        size_t operator()(const Position &pos) const;
+    };
 
     uint16_t x;
     uint16_t y;
@@ -142,8 +146,8 @@ namespace DrawMessage {
              uint16_t turn,
              std::unordered_map<player_id_t, PlayerInfo> &players_info,
              std::unordered_map<bomb_id_t, Bomb> &bombs_positions,
-             std::vector<std::vector<PositionType>> &board,
-             std::set<Position> &explosions);
+             std::unordered_set<Position, Position::HashFunction> &blocks_positions,
+             std::unordered_set<Position, Position::HashFunction> &explosions);
 
         std::string server_name;
         uint16_t size_x;

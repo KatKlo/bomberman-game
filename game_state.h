@@ -8,7 +8,6 @@
 #include <mutex>
 #include <ostream>
 #include <unordered_set>
-#include <set>
 
 enum GameState {
     NotConnected,
@@ -16,9 +15,9 @@ enum GameState {
     Game
 };
 
-class GameInfo {
+class ClientGameInfo {
 public:
-    explicit GameInfo(std::string player_name);
+    explicit ClientGameInfo(std::string player_name);
 
     DrawMessage::draw_message_optional_variant handle_server_message(ServerMessage::server_message_variant &msg);
     ClientMessage::client_message_optional_variant handle_GUI_message(InputMessage::input_message_variant &msg);
@@ -32,8 +31,8 @@ private:
     uint16_t turn;
     std::unordered_map<player_id_t, PlayerInfo> players;
     std::unordered_map<bomb_id_t, Bomb> bombs;
-    std::vector<std::vector<PositionType>> board;
-    std::set<Position> explosions;
+    std::unordered_set<Position, Position::HashFunction> explosions;
+    std::unordered_set<Position, Position::HashFunction> blocks;
     std::unordered_set<player_id_t> killed_players;
 
     GameState state;
@@ -53,6 +52,8 @@ private:
     void handle_player_moved(Event::PlayerMovedEvent &event);
     void handle_block_placed(Event::BlockPlacedEvent &event);
 
+    bool is_position_on_board(int32_t x, int32_t y) const;
+    void insert_explosion_if_possible(int32_t x, int32_t y, bool &is_direction_ok);
     void add_explosions_for_bomb(Position &bomb_position);
 };
 
