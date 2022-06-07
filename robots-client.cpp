@@ -6,12 +6,12 @@
 #include <iostream>
 
 int main(int argc, char *argv[]) {
-    ClientParameters p;
-    if (!p.read_program_arguments(argc, argv)) {
-        return 0;
-    }
-
     try {
+        ClientParameters p;
+        if (!p.read_program_arguments(argc, argv)) {
+            return 0;
+        }
+
         boost::asio::io_context io_context;
         Client client(io_context, p);
         io_context.run();

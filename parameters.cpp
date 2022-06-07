@@ -3,11 +3,10 @@
 
 namespace po = boost::program_options;
 
-ClientParameters::ClientParameters() : opt_description_("options"), var_map_() {
-    initialize_options_description();
-}
+Parameters::Parameters() : opt_description_("options"), var_map_() {}
 
-bool ClientParameters::read_program_arguments(int argc, char **argv) {
+
+bool Parameters::read_program_arguments(int argc, char **argv) {
     try {
         po::store(po::parse_command_line(argc, argv, opt_description_), var_map_);
         po::notify(var_map_);
@@ -22,12 +21,16 @@ bool ClientParameters::read_program_arguments(int argc, char **argv) {
     }
     catch (std::exception &e) {
         if (var_map_.count("help") == 0) {
-            Logger::print_error(e.what());
+            throw;
         }
 
         Logger::print_info("Usage: ", argv[0], " with ", opt_description_);
         return false;
     }
+}
+
+ClientParameters::ClientParameters() : Parameters() {
+    ClientParameters::initialize_options_description();
 }
 
 std::string ClientParameters::get_player_name() {
@@ -63,7 +66,78 @@ void ClientParameters::initialize_options_description() {
     opt_description_.add(required_description).add(optional_description);
 }
 
-static bool validate_port_number(std::string &number_str) {
+
+ServerParameters::ServerParameters() : Parameters() {
+    ServerParameters::initialize_options_description();
+}
+
+uint16_t ServerParameters::get_bomb_timer(){
+    return var_map_["bomb-timer"].as<uint16_t>();
+}
+
+uint8_t ServerParameters::get_players_count() {
+    return var_map_["players-count"].as<uint8_t>();
+}
+
+uint64_t ServerParameters::get_turn_duration() {
+    return var_map_["turn-duration"].as<uint64_t>();
+}
+
+uint16_t ServerParameters::get_explosion_radius() {
+    return var_map_["explosion-radius"].as<uint16_t>();
+}
+
+uint16_t ServerParameters::get_initial_blocks() {
+    return var_map_["initial-blocks"].as<uint16_t>();
+}
+
+uint16_t ServerParameters::get_game_length() {
+    return var_map_["game-length"].as<uint16_t>();
+}
+
+std::string ServerParameters::get_server_name() {
+    return var_map_["server-name"].as<std::string>();
+}
+
+uint16_t ServerParameters::get_port() {
+    return var_map_["port"].as<uint16_t>();
+}
+
+uint32_t ServerParameters::get_seed() {
+    return var_map_["seed"].as<uint32_t>();
+}
+
+uint16_t ServerParameters::get_size_x() {
+    return var_map_["size-x"].as<uint16_t>();
+}
+
+uint16_t ServerParameters::get_size_y() {
+    return var_map_["size-y"].as<uint16_t>();
+}
+
+void ServerParameters::initialize_options_description() {
+    po::options_description required_description("Required options");
+    required_description.add_options()
+            ("bomb-timer,b", po::value<uint16_t>()->required(), "set bomb timer")
+            ("players-count,c", po::value<uint8_t>()->required(), "set players count to start game")
+            ("turn-duration,d", po::value<uint64_t>()->required(), "set turn duration")
+            ("explosion-radius,e", po::value<uint16_t>()->required(), "set explosion radius")
+            ("initial-blocks,k", po::value<uint16_t>()->required(), "set initial blocks count")
+            ("game-length,l", po::value<uint16_t>()->required(), "set game length")
+            ("server-name,n", po::value<std::string>()->required(), "set server name")
+            ("port,p", po::value<uint16_t>()->required(), "set port number for receiving clients messages")
+            ("seed,s", po::value<uint32_t>(), "set seed for random generator")
+            ("size-x,x", po::value<uint16_t>()->required(), "set map size x")
+            ("size-y,y", po::value<uint16_t>()->required(), "set map size y");
+
+    po::options_description optional_description("Optional options");
+    optional_description.add_options()
+            ("help,h", "print help information");
+
+    opt_description_.add(required_description).add(optional_description);
+}
+
+bool Address::validate_port_number(std::string &number_str) {
     errno = 0;
     char *end;
     unsigned long number = strtoul(number_str.c_str(), &end, 10);
@@ -87,7 +161,7 @@ std::istream &operator>>(std::istream &in, Address &address) {
     address.port = token.substr(delimiter_index + 1, token.size() - 1 - delimiter_index);
     address.host = token.substr(0, delimiter_index);
 
-    if (!validate_port_number(address.port)) {
+    if (!Address::validate_port_number(address.port)) {
         throw std::invalid_argument(std::string("wrong port number in address: ") + token);
     }
 
