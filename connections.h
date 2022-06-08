@@ -135,6 +135,7 @@ public:
     void send(ServerMessage::server_message_variant &msg);
 
     ClientMessage::client_message_optional_variant get_latest_message();
+    std::string get_address();
 
 
 private:

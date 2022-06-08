@@ -201,6 +201,9 @@ namespace ServerMessage {
     };
 
     struct GameStarted {
+        GameStarted(const std::unordered_map<player_id_t, PlayerInfo> &players_info);
+        GameStarted(const std::unordered_map<player_id_t, Player> &players);
+
         std::unordered_map<player_id_t, Player> players;
     };
 
@@ -210,6 +213,9 @@ namespace ServerMessage {
     };
 
     struct GameEnded {
+        GameEnded(const std::unordered_map<player_id_t, score_t> &scores);
+        GameEnded(const std::unordered_map<player_id_t, PlayerInfo> &players_info);
+
         std::unordered_map<player_id_t, score_t> scores;
     };
 

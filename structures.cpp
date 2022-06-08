@@ -85,3 +85,19 @@ ServerMessage::Hello::Hello(const std::string &serverName, uint8_t playersCount,
                                                                    game_length(gameLength),
                                                                    explosion_radius(explosionRadius),
                                                                    bomb_timer(bombTimer) {}
+
+ServerMessage::GameStarted::GameStarted(const std::unordered_map<player_id_t, PlayerInfo> &players_info) {
+    for (auto &it: players_info) {
+        players.emplace(it.first, it.second.player);
+    }
+}
+
+ServerMessage::GameStarted::GameStarted(const std::unordered_map<player_id_t, Player> &players) : players(players) {}
+
+ServerMessage::GameEnded::GameEnded(const std::unordered_map<player_id_t, score_t> &scores) : scores(scores) {}
+
+ServerMessage::GameEnded::GameEnded(const std::unordered_map<player_id_t, PlayerInfo> &players_info) {
+    for (auto &it: players_info) {
+        scores.emplace(it.first, it.second.score);
+    }
+}

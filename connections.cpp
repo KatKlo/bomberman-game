@@ -251,6 +251,10 @@ void ClientConnection::handle_messages_in_bufor() {
     }
 }
 
+std::string ClientConnection::get_address() {
+    return socket_.remote_endpoint().address().to_string();
+}
+
 Server::Server(boost::asio::io_context &io_context, ServerParameters &parameters) : acceptor_(io_context, {boost::asio::ip::tcp::v6(), parameters.get_port()}),
                                                                                     client_connections_(),
                                                                                     player_connections_(),
@@ -302,7 +306,7 @@ void Server::send_and_save_message_to_all(ServerMessage::server_message_variant 
 }
 
 void Server::handle_join_message(ClientMessage::Join &msg, std::shared_ptr<ClientConnection> client) {
-    std::optional<ServerMessage::AcceptedPlayer> sth = gameInfo_.handle_client_join_message(msg);
+    std::optional<ServerMessage::AcceptedPlayer> sth = gameInfo_.handle_client_join_message(msg, client->get_address());
     if (sth.has_value()) {
         player_connections_.emplace(sth.value().id, std::move(client));
         ServerMessage::server_message_variant sth2 = sth.value();

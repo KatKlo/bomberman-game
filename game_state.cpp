@@ -19,6 +19,13 @@ bool GameInfo::is_position_on_board(int32_t x, int32_t y) const {
            y < static_cast<int32_t>(basic_info.size_y);
 }
 
+void GameInfo::clean_after_game() {
+    state = GameState::Lobby;
+    players.clear();
+    bombs.clear();
+    blocks.clear();
+}
+
 ClientGameInfo::ClientGameInfo(std::string player_name) : GameInfo(), player_name_(std::move(player_name)) {
     this->state = GameState::NotConnected;
 }
@@ -136,11 +143,7 @@ DrawMessage::draw_message_optional_variant ClientGameInfo::handle_turn(ServerMes
 }
 
 DrawMessage::draw_message_optional_variant ClientGameInfo::handle_game_ended() {
-    state = GameState::Lobby;
-    players.clear();
-    bombs.clear();
-    blocks.clear();
-
+    clean_after_game();
     return generate_draw_message();
 }
 
@@ -220,21 +223,79 @@ ServerGameInfo::ServerGameInfo(ServerParameters &params) : GameInfo(params) {
     this->state = GameState::Lobby;
 }
 
-//ServerMessage::server_message_optional_variant
-//ServerGameInfo::handle_client_message(ClientMessage::client_message_variant &msg, player_id_t player_id) {
-//    switch (msg.index()) {
-//        case ClientMessage::JOIN :
-//            return handle_join(std::get<ClientMessage::Join>(msg), player_id);
-//        case ClientMessage::PLACE_BOMB :
-//            return handle_place_bomb(player_id);
-//        case ClientMessage::PLACE_BLOCK :
-//            return handle_place_block(player_id);
-//        case ClientMessage::MOVE :
-//            return handle_move(std::get<ClientMessage::Move>(msg), player_id);
-//        default:
-//            Logger::print_error("Internal problem with variant");
-//            return std::nullopt;
-//    }
-//}
+bool ServerGameInfo::is_enough_players() const {
+    return players.size() >= players_count;
+}
+
+bool ServerGameInfo::is_end_of_game() const {
+    return turn >= basic_info.game_length;
+}
+
+ServerMessage::GameStarted ServerGameInfo::start_game() {
+    state = GameState::Game;
+    return {players};
+}
+
+ServerMessage::GameEnded ServerGameInfo::end_game() {
+    ServerMessage::GameEnded result{players};
+    clean_after_game();
+    return result;
+}
+
+// TODO!
+ServerMessage::server_message_variant
+ServerGameInfo::handle_turn(std::unordered_map<player_id_t, ClientMessage::client_message_variant> &msgs) {
+    return ServerMessage::Turn{turn, {}};
+}
+
+std::optional<ServerMessage::AcceptedPlayer>
+ServerGameInfo::handle_client_join_message(ClientMessage::Join &msg, std::string &&address) {
+    if (state != GameState::Lobby || players.size() > players_count) {
+        return std::nullopt;
+    }
+
+    for (auto &it: players) {
+        if (it.second.player.address == address) {
+            return std::nullopt;
+        }
+    }
+
+    Player new_player{msg.name, std::move(address)};
+    player_id_t new_player_id = players.size();
+    players.emplace(new_player_id, PlayerInfo{new_player, Position{0, 0}, 0});
+    return ServerMessage::AcceptedPlayer{new_player_id, new_player};
+}
+
+void ServerGameInfo::handle_client_message_in_game(ClientMessage::client_message_variant &msg, player_id_t player_id) {
+    if (state != GameState::Game) {
+        return;
+    }
+
+    switch (msg.index()) {
+        case ClientMessage::JOIN :
+            Logger::print_error("Join is ignored during game");
+            return;
+        case ClientMessage::PLACE_BOMB :
+            handle_place_bomb(player_id);
+            return;
+        case ClientMessage::PLACE_BLOCK :
+            handle_place_block(player_id);
+            return;
+        case ClientMessage::MOVE :
+            handle_move(std::get<ClientMessage::Move>(msg), player_id);
+            return;
+        default:
+            Logger::print_error("Internal problem with variant");
+    }
+}
+
+// TODO!
+void ServerGameInfo::handle_place_bomb(player_id_t player_id) {}
+
+// TODO!
+void ServerGameInfo::handle_place_block(player_id_t player_id) {}
+
+// TODO!
+void ServerGameInfo::handle_move(ClientMessage::Move &msg, player_id_t player_id) {}
 
 

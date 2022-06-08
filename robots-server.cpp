@@ -1,5 +1,6 @@
 #include "parameters.h"
 #include "logger.h"
+#include "connections.h"
 #include <boost/asio.hpp>
 
 #include <iostream>
@@ -12,7 +13,7 @@ int main(int argc, char *argv[]) {
         }
 
         boost::asio::io_context io_context;
-//        Server server(io_context, p);
+        Server server(io_context, p);
         io_context.run();
     } catch (std::exception &e) {
         Logger::print_error(e.what());
