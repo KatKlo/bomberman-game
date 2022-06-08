@@ -514,7 +514,7 @@ InputMessage::input_message_variant UdpInputBuffer::read_input_message() {
 
 InputMessage::Move UdpInputBuffer::read_input_move_message() {
     auto direction_number = read_uint8_t();
-    return InputMessage::Move{direction_number};
+    return InputMessage::Move{Direction{direction_number}};
 }
 
 InputMessage::PlaceBomb UdpInputBuffer::read_input_place_bomb_message() {
@@ -653,7 +653,7 @@ ClientMessage::PlaceBlock TcpInputBuffer::read_client_place_block_message(){
 
 ClientMessage::Move TcpInputBuffer::read_client_move_message(){
     uint8_t direction_number = read_uint8_t();
-    return ClientMessage::Move{direction_number};
+    return ClientMessage::Move{Direction{direction_number}};
 }
 
 TcpInputBuffer::TcpInputBuffer() : InputBuffer() {}

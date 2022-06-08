@@ -7,6 +7,7 @@
 #include <vector>
 #include <optional>
 #include <variant>
+#include "parameters.h"
 
 // Module for all structures needed for transferring and storing data
 
@@ -15,7 +16,6 @@ using event_id_t = uint8_t;
 using player_id_t = uint8_t;
 using score_t = uint32_t;
 using bomb_id_t = uint32_t;
-using direction_t = uint8_t;
 
 struct Player {
     std::string name;
@@ -38,19 +38,24 @@ struct Bomb {
     uint16_t timer;
 };
 
+enum Direction : uint8_t {
+    UP = 0,
+    RIGHT = 1,
+    DOWN = 2,
+    LEFT = 3,
+};
+
 struct PlayerInfo {
     Player player;
     Position position{};
     score_t score{};
 };
 
-enum PositionType {
-    Empty = 0,
-    Block = 1,
-};
-
 struct GameBasicInfo {
     GameBasicInfo() = default;
+    GameBasicInfo(ServerParameters &params);
+
+    GameBasicInfo(const std::string &server_name, uint16_t size_x, uint16_t size_y, uint16_t game_length);
 
     std::string server_name;
     uint16_t size_x{};
@@ -108,7 +113,7 @@ namespace ClientMessage {
     struct PlaceBlock {};
 
     struct Move {
-        direction_t direction;
+        Direction direction;
     };
 
     using client_message_variant = std::variant<
@@ -175,6 +180,12 @@ namespace ServerMessage {
     constexpr message_id_t GAME_ENDED = 4;
 
     struct Hello {
+        Hello() = default;
+        Hello(ServerParameters &params);
+
+        Hello(const std::string &serverName, uint8_t playersCount, uint16_t sizeX, uint16_t sizeY, uint16_t gameLength,
+              uint16_t explosionRadius, uint16_t bombTimer);
+
         std::string server_name;
         uint8_t players_count;
         uint16_t size_x;
@@ -208,6 +219,9 @@ namespace ServerMessage {
             GameStarted,
             Turn,
             GameEnded>;
+
+    using server_message_optional_variant = std::optional<server_message_variant>;
+
 }
 
 namespace InputMessage {
@@ -221,7 +235,7 @@ namespace InputMessage {
     struct PlaceBlock {};
 
     struct Move {
-        direction_t direction;
+        Direction direction;
     };
 
     using input_message_variant = std::variant<

@@ -4,18 +4,24 @@
 #include <cstring>
 #include "logger.h"
 
-ClientGameInfo::ClientGameInfo(std::string player_name) : player_name_(std::move(player_name)),
-                                                          basic_info(),
-                                                          players_count(),
-                                                          explosion_radius(),
-                                                          bomb_timer(),
-                                                          turn(),
-                                                          players(),
-                                                          bombs(),
-                                                          explosions(),
-                                                          blocks(),
-                                                          killed_players(),
-                                                          state(GameState::NotConnected) {}
+GameInfo::GameInfo(ServerParameters &params) : basic_info(params),
+                                               players_count(params.get_players_count()),
+                                               explosion_radius(params.get_explosion_radius()),
+                                               bomb_timer(params.get_bomb_timer()),
+                                               turn(0),
+                                               players(),
+                                               bombs(),
+                                               blocks(),
+                                               killed_players() {}
+
+bool GameInfo::is_position_on_board(int32_t x, int32_t y) const {
+    return x >= 0 && x < static_cast<int32_t>(basic_info.size_x) && y >= 0 &&
+           y < static_cast<int32_t>(basic_info.size_y);
+}
+
+ClientGameInfo::ClientGameInfo(std::string player_name) : GameInfo(), player_name_(std::move(player_name)) {
+    this->state = GameState::NotConnected;
+}
 
 DrawMessage::draw_message_optional_variant
 ClientGameInfo::handle_server_message(ServerMessage::server_message_variant &msg) {
@@ -72,7 +78,7 @@ DrawMessage::draw_message_optional_variant ClientGameInfo::generate_draw_message
 }
 
 DrawMessage::draw_message_optional_variant ClientGameInfo::handle_hello(ServerMessage::Hello &msg) {
-    basic_info = {msg.server_name, msg.size_x, msg.size_y, msg.game_length};
+    basic_info = GameBasicInfo{msg.server_name, msg.size_x, msg.size_y, msg.game_length};
     players_count = msg.players_count;
     explosion_radius = msg.explosion_radius;
     bomb_timer = msg.bomb_timer;
@@ -184,9 +190,6 @@ void ClientGameInfo::handle_block_placed(Event::BlockPlacedEvent &event) {
     blocks.emplace(event.position);
 }
 
-bool ClientGameInfo::is_position_on_board(int32_t x, int32_t y) const {
-    return x >= 0 && x < static_cast<int32_t>(basic_info.size_x) && y >= 0 && y < static_cast<int32_t>(basic_info.size_y);
-}
 
 void ClientGameInfo::insert_explosion_if_possible(int32_t x, int32_t y, bool &is_direction_ok) {
     Position possible_position = {static_cast<uint16_t>(x), static_cast<uint16_t>(y)};
@@ -206,9 +209,32 @@ void ClientGameInfo::add_explosions_for_bomb(Position &bomb_position) {
     int32_t x = bomb_position.x;
     int32_t y = bomb_position.y;
     for (int32_t i = 1; i <= explosion_radius; i++) {
-        insert_explosion_if_possible(x, y + i, is_direction_ok[0]);
-        insert_explosion_if_possible(x + i, y, is_direction_ok[1]);
-        insert_explosion_if_possible(x, y - i, is_direction_ok[2]);
-        insert_explosion_if_possible(x - i, y, is_direction_ok[3]);
+        insert_explosion_if_possible(x, y + i, is_direction_ok[Direction::UP]);
+        insert_explosion_if_possible(x + i, y, is_direction_ok[Direction::RIGHT]);
+        insert_explosion_if_possible(x, y - i, is_direction_ok[Direction::DOWN]);
+        insert_explosion_if_possible(x - i, y, is_direction_ok[Direction::LEFT]);
     }
 }
+
+ServerGameInfo::ServerGameInfo(ServerParameters &params) : GameInfo(params) {
+    this->state = GameState::Lobby;
+}
+
+//ServerMessage::server_message_optional_variant
+//ServerGameInfo::handle_client_message(ClientMessage::client_message_variant &msg, player_id_t player_id) {
+//    switch (msg.index()) {
+//        case ClientMessage::JOIN :
+//            return handle_join(std::get<ClientMessage::Join>(msg), player_id);
+//        case ClientMessage::PLACE_BOMB :
+//            return handle_place_bomb(player_id);
+//        case ClientMessage::PLACE_BLOCK :
+//            return handle_place_block(player_id);
+//        case ClientMessage::MOVE :
+//            return handle_move(std::get<ClientMessage::Move>(msg), player_id);
+//        default:
+//            Logger::print_error("Internal problem with variant");
+//            return std::nullopt;
+//    }
+//}
+
+

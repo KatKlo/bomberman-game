@@ -25,7 +25,9 @@ target_link_libraries(Connections Buffer GameState ${Boost_LIBRARIES})
 add_executable(robots-client robots-client.cpp)
 add_executable(robots-server robots-server.cpp)
 
-target_link_libraries(robots-client Parameters Structures Buffer GameState Connections ${Boost_LIBRARIES} -lpthread)
-target_link_libraries(robots-server Parameters Structures Buffer GameState Connections ${Boost_LIBRARIES} -lpthread)
+set(MY_LIBRARIES Parameters Structures Buffer GameState Connections )
+
+target_link_libraries(robots-client ${MY_LIBRARIES} ${Boost_LIBRARIES} -lpthread)
+target_link_libraries(robots-server ${MY_LIBRARIES} ${Boost_LIBRARIES} -lpthread)
 
 
