@@ -1,5 +1,6 @@
 #include "parameters.h"
 #include "logger.h"
+#include <string>
 
 namespace po = boost::program_options;
 
@@ -71,12 +72,12 @@ ServerParameters::ServerParameters() : Parameters() {
     ServerParameters::initialize_options_description();
 }
 
-uint16_t ServerParameters::get_bomb_timer(){
+uint16_t ServerParameters::get_bomb_timer() {
     return var_map_["bomb-timer"].as<uint16_t>();
 }
 
 uint8_t ServerParameters::get_players_count() {
-    return var_map_["players-count"].as<uint8_t>();
+    return var_map_["players-count"].as<u8_t>().value;
 }
 
 uint64_t ServerParameters::get_turn_duration() {
@@ -104,6 +105,10 @@ uint16_t ServerParameters::get_port() {
 }
 
 uint32_t ServerParameters::get_seed() {
+    if (var_map_.count("seed") == 0) {
+        return std::time(nullptr);
+    }
+
     return var_map_["seed"].as<uint32_t>();
 }
 
@@ -119,20 +124,21 @@ void ServerParameters::initialize_options_description() {
     po::options_description required_description("Required options");
     required_description.add_options()
             ("bomb-timer,b", po::value<uint16_t>()->required(), "set bomb timer")
-            ("players-count,c", po::value<uint8_t>()->required(), "set players count to start game")
+            ("players-count,c", po::value<u8_t>()->required(), "set players count required to start game")
             ("turn-duration,d", po::value<uint64_t>()->required(), "set turn duration")
             ("explosion-radius,e", po::value<uint16_t>()->required(), "set explosion radius")
             ("initial-blocks,k", po::value<uint16_t>()->required(), "set initial blocks count")
             ("game-length,l", po::value<uint16_t>()->required(), "set game length")
             ("server-name,n", po::value<std::string>()->required(), "set server name")
             ("port,p", po::value<uint16_t>()->required(), "set port number for receiving clients messages")
-            ("seed,s", po::value<uint32_t>()->required(), "set seed for random generator")
             ("size-x,x", po::value<uint16_t>()->required(), "set map size x")
             ("size-y,y", po::value<uint16_t>()->required(), "set map size y");
 
     po::options_description optional_description("Optional options");
     optional_description.add_options()
+            ("seed,s", po::value<uint32_t>(), "set seed for random generator")
             ("help,h", "print help information");
+
 
     opt_description_.add(required_description).add(optional_description);
 }
@@ -149,20 +155,20 @@ bool Address::validate_port_number(std::string &number_str) {
     return true;
 }
 
-std::istream &operator>>(std::istream &in, Address &address) {
+std::istream &operator>>(std::istream &in, Address &adr) {
     std::string token;
     in >> token;
 
     size_t delimiter_index = token.find_last_of(':');
     if (delimiter_index == std::string::npos || delimiter_index == token.size() - 1) {
-        throw std::invalid_argument(std::string("no port number in address: ") + token);
+        throw std::invalid_argument(std::string("no port number in adr: ") + token);
     }
 
-    address.port = token.substr(delimiter_index + 1, token.size() - 1 - delimiter_index);
-    address.host = token.substr(0, delimiter_index);
+    adr.port = token.substr(delimiter_index + 1, token.size() - 1 - delimiter_index);
+    adr.host = token.substr(0, delimiter_index);
 
-    if (!Address::validate_port_number(address.port)) {
-        throw std::invalid_argument(std::string("wrong port number in address: ") + token);
+    if (!Address::validate_port_number(adr.port)) {
+        throw std::invalid_argument(std::string("wrong port number in adr: ") + token);
     }
 
     return in;
@@ -170,4 +176,20 @@ std::istream &operator>>(std::istream &in, Address &address) {
 
 std::ostream &operator<<(std::ostream &out, const Address &adr) {
     return out << adr.host << ":" << adr.port;
+}
+
+std::ostream &operator<<(std::ostream &out, const u8_t &u8) {
+    return out << static_cast<int>(u8.value);
+}
+
+std::istream &operator>>(std::istream &in, u8_t &u8) {
+    int i;
+    in >> i;
+
+    if (i < 0 || i > UINT8_MAX) {
+        throw std::invalid_argument(std::string("wrong players_count number" + std::to_string(i)));
+    }
+
+    u8.value = static_cast<uint8_t>(i);
+    return in;
 }

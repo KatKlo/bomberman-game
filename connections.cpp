@@ -1,5 +1,6 @@
 #include "connections.h"
 #include "logger.h"
+#include <boost/bind/bind.hpp>
 
 using udp = boost::asio::ip::udp;
 using tcp = boost::asio::ip::tcp;
@@ -216,10 +217,19 @@ TCPConnection::TCPConnection(boost::asio::ip::tcp::socket socket) : Connection()
                                                                     socket_(std::move(socket)),
                                                                     read_msg_() {}
 
-ClientConnection::ClientConnection(boost::asio::ip::tcp::socket socket, Server &server) : TCPConnection(
-        std::move(socket)),
+ClientConnection::ClientConnection(boost::asio::ip::tcp::socket socket, Server &server) : TCPConnection(std::move(socket)),
                                                                                           server_(server),
-                                                                                          last_message_() {}
+                                                                                          last_message_() {
+}
+
+void ClientConnection::start() {
+    try {
+        do_read_message();
+    } catch (std::domain_error &e) {
+        Logger::print_debug(e.what());
+        close();
+    }
+}
 
 
 void ClientConnection::send(ServerMessage::server_message_variant &msg) {
@@ -232,7 +242,10 @@ void ClientConnection::send(ServerMessage::server_message_variant &msg) {
 }
 
 ClientMessage::client_message_optional_variant ClientConnection::get_latest_message() {
-    return last_message_;
+    ClientMessage::client_message_optional_variant result = last_message_;
+    last_message_ = std::nullopt;
+
+    return result;
 }
 
 void ClientConnection::handle_messages_in_bufor() {
@@ -252,24 +265,31 @@ void ClientConnection::handle_messages_in_bufor() {
 }
 
 std::string ClientConnection::get_address() {
-    return socket_.remote_endpoint().address().to_string();
+    std::stringstream s;
+    s << socket_.remote_endpoint();
+    std::string result;
+    s >> result;
+    return result;
 }
 
-Server::Server(boost::asio::io_context &io_context, ServerParameters &parameters) : acceptor_(io_context, {boost::asio::ip::tcp::v6(), parameters.get_port()}),
+Server::Server(boost::asio::io_context &io_context, ServerParameters &parameters) : acceptor_(io_context,
+                                                                                              {boost::asio::ip::tcp::v6(),
+                                                                                               parameters.get_port()}),
                                                                                     client_connections_(),
                                                                                     player_connections_(),
                                                                                     messages_for_new_connection_(),
                                                                                     hello_message_(parameters),
                                                                                     gameInfo_(parameters),
                                                                                     timer_(io_context),
-                                                                                    timer_interval_(parameters.get_turn_duration()) {
+                                                                                    timer_interval_(
+                                                                                            parameters.get_turn_duration()) {
     Logger::print_debug("server created - accepting clients on address ", acceptor_.local_endpoint());
     do_accept();
 }
 
 Server::~Server() {
     Logger::print_debug("closing server");
-    for (auto &connection : client_connections_) {
+    for (auto &connection: client_connections_) {
         connection->close();
     }
     acceptor_.close();
@@ -277,17 +297,17 @@ Server::~Server() {
 
 void Server::do_accept() {
     acceptor_.async_accept(
-            [this](boost::system::error_code ec, tcp::socket socket)
-            {
-                if (!ec)
-                {
+            [this](boost::system::error_code ec, tcp::socket socket) {
+                if (!ec) {
                     auto sth = std::make_shared<ClientConnection>(std::move(socket), *this);
+                    sth->start();
                     ServerMessage::server_message_variant sth2 = hello_message_;
                     sth->send(sth2);
-                    for (auto &msg : messages_for_new_connection_) {
+                    for (auto &msg: messages_for_new_connection_) {
                         sth->send(msg);
                     }
-                    client_connections_.emplace_back(std::move(sth));
+                    client_connections_.emplace_back(sth);
+                    Logger::print_debug("client ", sth->get_address(), " added to connected clients");
                 }
 
                 do_accept();
@@ -295,8 +315,15 @@ void Server::do_accept() {
 }
 
 void Server::send_message_to_all(ServerMessage::server_message_variant &&msg) {
-    for (auto &connection : client_connections_) {
-        connection->send(msg);
+    for (auto it = client_connections_.begin(); it != client_connections_.end();) {
+        try {
+            (*it)->send(msg);
+            it++;
+        } catch (std::domain_error &e) {
+            Logger::print_error(e.what());
+            (*it)->close();
+            it = client_connections_.erase(it);
+        }
     }
 }
 
@@ -317,30 +344,37 @@ void Server::handle_join_message(ClientMessage::Join &msg, std::shared_ptr<Clien
     }
 }
 
+void Server::handle_turn() {
+    std::unordered_map<player_id_t, ClientMessage::client_message_variant> messages_to_handle;
+
+    for (auto &player: player_connections_) {
+        ClientMessage::client_message_optional_variant sth2 = player.second->get_latest_message();
+        if (sth2.has_value()) {
+            messages_to_handle.emplace(player.first, std::move(sth2.value()));
+        }
+    }
+
+    send_and_save_message_to_all(gameInfo_.handle_turn(messages_to_handle));
+    make_turn();
+}
+
+void Server::make_turn() {
+    if (gameInfo_.is_end_of_game()) {
+        messages_for_new_connection_.clear();
+        send_message_to_all(gameInfo_.end_game());
+        return;
+    }
+
+    timer_.expires_from_now(timer_interval_);
+    timer_.async_wait(boost::bind(&Server::handle_turn, this));
+}
+
 void Server::play_game() {
     messages_for_new_connection_.clear();
     ServerGameInfo::start_game_messages sth3 = gameInfo_.start_game();
     send_and_save_message_to_all(sth3.first);
     send_and_save_message_to_all(sth3.second);
 
-    std::unordered_map<player_id_t, ClientMessage::client_message_variant> messages_to_handle;
-
-    while (!gameInfo_.is_end_of_game()) {
-        timer_.expires_from_now(timer_interval_);
-        timer_.wait();
-
-        for (auto &player : player_connections_) {
-            ClientMessage::client_message_optional_variant sth2 = player.second->get_latest_message();
-            if (sth2.has_value()) {
-                messages_to_handle.emplace(player.first, std::move(sth2.value()));
-            }
-        }
-
-        send_and_save_message_to_all(gameInfo_.handle_turn(messages_to_handle));
-        messages_to_handle.clear();
-    }
-
-    messages_for_new_connection_.clear();
-    send_message_to_all(gameInfo_.end_game());
+    make_turn();
 }
 

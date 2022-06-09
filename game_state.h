@@ -93,6 +93,7 @@ private:
     std::unordered_set<Position, Position::HashFunction> destroyed_blocks_;
     std::vector<Position> destroyed_blocks_in_explosion_;
     std::vector<player_id_t> destroyed_robots_in_explosion_;
+    uint32_t next_bomb_id;
 
     void initialize_board();
 

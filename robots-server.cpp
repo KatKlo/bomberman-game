@@ -22,3 +22,6 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
+//./robots-server --port 54321 --server-name 'Test' --players-count 1 --turn-duration 1000 --game-length 10 --size-x 4 --size-y 4 --explosion-radius 2 --bomb-timer 3 --initial-blocks 6
+

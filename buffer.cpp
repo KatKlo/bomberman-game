@@ -1,4 +1,5 @@
 #include "buffer.h"
+#include "logger.h"
 #include <iostream>
 
 // Buffer
@@ -386,6 +387,7 @@ void OutputBuffer::write_draw_game_message(DrawMessage::Game &msg) {
 void OutputBuffer::write_server_hello_message(ServerMessage::Hello &msg) {
     write_uint8_t(ServerMessage::HELLO);
     write_string(msg.server_name);
+    write_uint8_t(msg.players_count);
     write_uint16_t(msg.size_x);
     write_uint16_t(msg.size_y);
     write_uint16_t(msg.game_length);

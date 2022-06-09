@@ -12,7 +12,7 @@ struct Address {
     std::string host;
     std::string port;
 
-    friend std::istream &operator>>(std::istream &in, Address &address);
+    friend std::istream &operator>>(std::istream &in, Address &adr);
 
     friend std::ostream &operator<<(std::ostream &out, const Address &adr);
 
@@ -69,6 +69,13 @@ public:
 
 private:
     void initialize_options_description() override;
+};
+
+struct u8_t {
+    uint8_t value;
+
+    friend std::istream& operator>>(std::istream& in, u8_t& u8);
+    friend std::ostream& operator<<(std::ostream& out, const u8_t& u8);
 };
 
 #endif //ROBOTS_PARAMETERS_H

@@ -54,6 +54,8 @@ private:
     void send_message_to_all(ServerMessage::server_message_variant &&msg);
     void send_and_save_message_to_all(ServerMessage::server_message_variant &&msg);
     void play_game();
+    void handle_turn();
+    void make_turn();
 };
 
 // Superclass for connections with gui and server
@@ -131,6 +133,8 @@ class ClientConnection
           public std::enable_shared_from_this<ClientConnection> {
 public:
     ClientConnection(boost::asio::ip::tcp::socket socket, Server &server);
+
+    void start();
 
     void send(ServerMessage::server_message_variant &msg);
 

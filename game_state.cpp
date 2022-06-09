@@ -24,6 +24,7 @@ void GameInfo::clean_after_game() {
     players.clear();
     bombs.clear();
     blocks.clear();
+    turn = 0;
 }
 
 bool GameInfo::is_block_on_position(Position &position) {
@@ -152,9 +153,9 @@ DrawMessage::draw_message_optional_variant ClientGameInfo::handle_turn(ServerMes
         for (auto &it: bombs) {
             it.second.timer -= (msg.turn - turn);
         }
-
-        turn = msg.turn;
     }
+
+    turn = msg.turn;
 
     destroyed_robots.clear();
     explosions.clear();
@@ -242,7 +243,8 @@ ServerGameInfo::ServerGameInfo(ServerParameters &params) : GameInfo(params),
                                                            events_(),
                                                            destroyed_blocks_(),
                                                            destroyed_blocks_in_explosion_(),
-                                                           destroyed_robots_in_explosion_() {
+                                                           destroyed_robots_in_explosion_(),
+                                                           next_bomb_id(0) {
     this->state = GameState::Lobby;
 }
 
@@ -251,13 +253,12 @@ bool ServerGameInfo::is_enough_players() const {
 }
 
 bool ServerGameInfo::is_end_of_game() const {
-    return turn >= basic_info.game_length;
+    return turn > basic_info.game_length;
 }
 
 ServerGameInfo::start_game_messages ServerGameInfo::start_game() {
     state = GameState::Game;
     initialize_board();
-    events_.clear();
     return {ServerMessage::GameStarted{players}, ServerMessage::Turn{turn++, events_}};
 }
 
@@ -342,7 +343,8 @@ void ServerGameInfo::handle_client_message_in_game(ClientMessage::client_message
 }
 
 void ServerGameInfo::initialize_board() {
-    turn = 0;
+    next_bomb_id = 0;
+    events_.clear();
 
     for (auto &[id, player]: players) {
         player.position = get_random_position();
@@ -357,7 +359,7 @@ void ServerGameInfo::initialize_board() {
 }
 
 void ServerGameInfo::handle_place_bomb(Position &bomb_position) {
-    bomb_id_t new_bomb_id = bombs.rbegin()->first + 1;
+    bomb_id_t new_bomb_id = next_bomb_id++;
     bombs.emplace(new_bomb_id, Bomb{bomb_position, bomb_timer});
     events_.emplace_back(Event::BombPlacedEvent{new_bomb_id, bomb_position});
 }

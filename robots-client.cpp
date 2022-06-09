@@ -22,3 +22,5 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
+// ./robots-client --gui-address 0.0.0.0:5555 --player-name Kasia --port 4321 --server-address localhost:54321
