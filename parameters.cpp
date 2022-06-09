@@ -106,7 +106,7 @@ uint16_t ServerParameters::get_port() {
 
 uint32_t ServerParameters::get_seed() {
     if (var_map_.count("seed") == 0) {
-        return std::time(nullptr);
+        return static_cast<uint32_t>(std::time(nullptr));
     }
 
     return var_map_["seed"].as<uint32_t>();

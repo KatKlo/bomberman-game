@@ -100,8 +100,8 @@ protected:
     void write_draw_game_message(DrawMessage::Game &msg);
 
     void write_client_join_message(ClientMessage::Join &msg);
-    void write_client_place_bomb_message(ClientMessage::PlaceBomb &msg);
-    void write_client_place_block_message(ClientMessage::PlaceBlock &msg);
+    void write_client_place_bomb_message();
+    void write_client_place_block_message();
     void write_client_move_message(ClientMessage::Move &msg);
 
     void write_server_hello_message(ServerMessage::Hello &msg);

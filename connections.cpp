@@ -161,18 +161,14 @@ void TCPConnection::do_read_message() {
     socket_.async_read_some(
             boost::asio::buffer(&buffer_[0], Buffer::MAX_PACKET_LENGTH),
             [this](boost::system::error_code ec, std::size_t length) {
-                if (ec == boost::asio::error::operation_aborted) { // closed socket_
-                    return;
-                }
-
-                Logger::print_debug("read message from ", socket_.remote_endpoint(), " - ", length, " bytes");
-
                 if (!ec) {
+                    Logger::print_debug("read message from ", socket_.remote_endpoint(), " - ", length, " bytes");
+
                     read_msg_.add_packet(buffer_, length);
                     handle_messages_in_bufor();
                     do_read_message();
                 } else {
-                    throw std::domain_error("error in reading from " + socket_.remote_endpoint().address().to_string());
+                    handle_connection_error();
                 }
             });
 }
@@ -186,6 +182,10 @@ void ServerConnection::send(ClientMessage::client_message_variant &msg) {
     }
 }
 
+void ServerConnection::handle_connection_error() {
+    throw std::domain_error("error in tcp connection with " + socket_.remote_endpoint().address().to_string());
+}
+
 void TCPConnection::close() {
     Logger::print_debug("closing tcp connection between", socket_.local_endpoint(), " and ", socket_.remote_endpoint());
     socket_.close();
@@ -195,20 +195,16 @@ void TCPConnection::do_write_message() {
     socket_.async_send(
             boost::asio::buffer(write_msgs_.front().get_buffer(), write_msgs_.front().size()),
             [this](boost::system::error_code ec, std::size_t) {
-                if (ec == boost::asio::error::operation_aborted) { // closed socket_
-                    return;
-                }
-
-                Logger::print_debug("send message to ", socket_.remote_endpoint(), " - ", write_msgs_.front().size(),
-                                    " bytes: ", write_msgs_.front());
-                write_msgs_.pop_front();
-
                 if (!ec) {
+                    Logger::print_debug("send message to ", socket_.remote_endpoint(), " - ", write_msgs_.front().size(),
+                                        " bytes: ", write_msgs_.front());
+                    write_msgs_.pop_front();
+
                     if (!write_msgs_.empty()) {
                         do_write_message();
                     }
                 } else {
-                    throw std::domain_error("error in sending to " + socket_.remote_endpoint().address().to_string());
+                    handle_connection_error();
                 }
             });
 }
@@ -223,12 +219,7 @@ ClientConnection::ClientConnection(boost::asio::ip::tcp::socket socket, Server &
 }
 
 void ClientConnection::start() {
-    try {
-        do_read_message();
-    } catch (std::domain_error &e) {
-        Logger::print_debug(e.what());
-        close();
-    }
+    do_read_message();
 }
 
 
@@ -272,6 +263,10 @@ std::string ClientConnection::get_address() {
     return result;
 }
 
+void ClientConnection::handle_connection_error() {
+    server_.disconnect_client(shared_from_this());
+}
+
 Server::Server(boost::asio::io_context &io_context, ServerParameters &parameters) : acceptor_(io_context,
                                                                                               {boost::asio::ip::tcp::v6(),
                                                                                                parameters.get_port()}),
@@ -306,7 +301,7 @@ void Server::do_accept() {
                     for (auto &msg: messages_for_new_connection_) {
                         sth->send(msg);
                     }
-                    client_connections_.emplace_back(sth);
+                    client_connections_.emplace(sth);
                     Logger::print_debug("client ", sth->get_address(), " added to connected clients");
                 }
 
@@ -332,10 +327,10 @@ void Server::send_and_save_message_to_all(ServerMessage::server_message_variant 
     send_message_to_all(std::move(msg));
 }
 
-void Server::handle_join_message(ClientMessage::Join &msg, std::shared_ptr<ClientConnection> client) {
+void Server::handle_join_message(ClientMessage::Join &msg, const std::shared_ptr<ClientConnection>& client) {
     std::optional<ServerMessage::AcceptedPlayer> sth = gameInfo_.handle_client_join_message(msg, client->get_address());
     if (sth.has_value()) {
-        player_connections_.emplace(sth.value().id, std::move(client));
+        player_connections_.emplace(sth.value().id, client);
         send_and_save_message_to_all(std::move(sth.value()));
 
         if (gameInfo_.is_enough_players()) {
@@ -361,6 +356,7 @@ void Server::handle_turn() {
 void Server::make_turn() {
     if (gameInfo_.is_end_of_game()) {
         messages_for_new_connection_.clear();
+        player_connections_.clear();
         send_message_to_all(gameInfo_.end_game());
         return;
     }
@@ -376,5 +372,9 @@ void Server::play_game() {
     send_and_save_message_to_all(sth3.second);
 
     make_turn();
+}
+
+void Server::disconnect_client(const std::shared_ptr<ClientConnection>& client) {
+    client_connections_.erase(client);
 }
 

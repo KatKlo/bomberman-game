@@ -5,7 +5,7 @@
 // Buffer
 
 std::ostream &operator<<(std::ostream &os, const Buffer &buffer) {
-    for (int i = 0; i < buffer.size_; i++) {
+    for (size_t i = 0; i < buffer.size_; i++) {
         os << (uint32_t) buffer.buffer_[i] << " ";
     }
     return os;
@@ -129,7 +129,7 @@ std::vector<Event::event_message_variant> InputBuffer::read_events_vector() {
     auto vec_size = read_uint32_t();
     std::vector<Event::event_message_variant> vector;
 
-    for (int i = 0; i < vec_size; i++) {
+    for (size_t i = 0; i < vec_size; i++) {
         auto event = read_event();
         vector.emplace_back(event);
     }
@@ -141,7 +141,7 @@ std::vector<player_id_t> InputBuffer::read_players_id_vector() {
     auto vec_size = read_uint32_t();
     std::vector<player_id_t> vector;
 
-    for (int i = 0; i < vec_size; i++) {
+    for (size_t i = 0; i < vec_size; i++) {
         auto player_id = read_uint8_t();
         vector.emplace_back(player_id);
     }
@@ -153,7 +153,7 @@ std::vector<Position> InputBuffer::read_positions_vector() {
     auto vec_size = read_uint32_t();
     std::vector<Position> vector;
 
-    for (int i = 0; i < vec_size; i++) {
+    for (size_t i = 0; i < vec_size; i++) {
         auto position = read_position();
         vector.emplace_back(position);
     }
@@ -165,7 +165,7 @@ std::unordered_map<player_id_t, Player> InputBuffer::read_players_map() {
     auto map_size = read_uint32_t();
     std::unordered_map<player_id_t, Player> map;
 
-    for (int i = 0; i < map_size; i++) {
+    for (size_t i = 0; i < map_size; i++) {
         auto player_id = read_uint8_t();
         auto player = read_player();
         map.emplace(player_id, player);
@@ -178,7 +178,7 @@ std::unordered_map<player_id_t, score_t> InputBuffer::read_player_scores_map() {
     auto map_size = read_uint32_t();
     std::unordered_map<player_id_t, score_t> map;
 
-    for (int i = 0; i < map_size; i++) {
+    for (size_t i = 0; i < map_size; i++) {
         auto player_id = read_uint8_t();
         auto score = read_uint32_t();
         map.emplace(player_id, score);
@@ -218,7 +218,7 @@ void OutputBuffer::write_uint32_t(uint32_t number) {
 }
 
 void OutputBuffer::write_string(std::string &string) {
-    write_uint8_t(string.length());
+    write_uint8_t(static_cast<uint8_t>(string.length()));
     resize_if_needed(write_index + string.length());
     std::copy(string.c_str(), string.c_str() + string.length(), &buffer_[write_index]);
     write_index += string.length();
@@ -288,35 +288,35 @@ void OutputBuffer::write_event(Event::event_message_variant &event) {
 }
 
 void OutputBuffer::write_players_id_vector(std::vector<player_id_t> &player_ids) {
-    write_uint32_t(player_ids.size());
+    write_uint32_t(static_cast<uint32_t>(player_ids.size()));
     for (auto &player_id : player_ids) {
         write_uint8_t(player_id);
     }
 }
 
 void OutputBuffer::write_positions_vector(std::vector<Position> &positions) {
-    write_uint32_t(positions.size());
+    write_uint32_t(static_cast<uint32_t>(positions.size()));
     for (auto &it: positions) {
         write_position(it);
     }
 }
 
 void OutputBuffer::write_bombs_vector(std::vector<Bomb> &bombs) {
-    write_uint32_t(bombs.size());
+    write_uint32_t(static_cast<uint32_t>(bombs.size()));
     for (auto &it: bombs) {
         write_bomb(it);
     }
 }
 
 void OutputBuffer::write_events_vector(std::vector<Event::event_message_variant> &events) {
-    write_uint32_t(events.size());
+    write_uint32_t(static_cast<uint32_t>(events.size()));
     for (auto &it: events) {
         write_event(it);
     }
 }
 
 void OutputBuffer::write_players_map(std::unordered_map<player_id_t, Player> &players) {
-    write_uint32_t(players.size());
+    write_uint32_t(static_cast<uint32_t>(players.size()));
     for (auto &it: players) {
         write_uint8_t(it.first);
         write_player(it.second);
@@ -324,7 +324,7 @@ void OutputBuffer::write_players_map(std::unordered_map<player_id_t, Player> &pl
 }
 
 void OutputBuffer::write_player_positions_map(std::unordered_map<player_id_t, Position> &player_positions) {
-    write_uint32_t(player_positions.size());
+    write_uint32_t(static_cast<uint32_t>(player_positions.size()));
     for (auto &it: player_positions) {
         write_uint8_t(it.first);
         write_position(it.second);
@@ -332,7 +332,7 @@ void OutputBuffer::write_player_positions_map(std::unordered_map<player_id_t, Po
 }
 
 void OutputBuffer::write_player_scores_map(std::unordered_map<player_id_t, score_t> &scores) {
-    write_uint32_t(scores.size());
+    write_uint32_t(static_cast<uint32_t>(scores.size()));
     for (auto &it: scores) {
         write_uint8_t(it.first);
         write_uint32_t(it.second);
@@ -344,11 +344,11 @@ void OutputBuffer::write_client_join_message(ClientMessage::Join &msg) {
     write_string(msg.name);
 }
 
-void OutputBuffer::write_client_place_bomb_message(ClientMessage::PlaceBomb &msg) {
+void OutputBuffer::write_client_place_bomb_message() {
     write_uint8_t(ClientMessage::PLACE_BOMB);
 }
 
-void OutputBuffer::write_client_place_block_message(ClientMessage::PlaceBlock &msg) {
+void OutputBuffer::write_client_place_block_message() {
     write_uint8_t(ClientMessage::PLACE_BLOCK);
 }
 
@@ -425,10 +425,10 @@ OutputBuffer::OutputBuffer(ClientMessage::client_message_variant &msg) : Buffer(
             write_client_join_message(std::get<ClientMessage::Join>(msg));
             break;
         case ClientMessage::PLACE_BOMB:
-            write_client_place_bomb_message(std::get<ClientMessage::PlaceBomb>(msg));
+            write_client_place_bomb_message();
             break;
         case ClientMessage::PLACE_BLOCK:
-            write_client_place_block_message(std::get<ClientMessage::PlaceBlock>(msg));
+            write_client_place_block_message();
             break;
         case ClientMessage::MOVE:
             write_client_move_message(std::get<ClientMessage::Move>(msg));

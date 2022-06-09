@@ -38,11 +38,12 @@ public:
 
     virtual ~Server();
 
-    void handle_join_message(ClientMessage::Join &msg, std::shared_ptr<ClientConnection> client);
+    void handle_join_message(ClientMessage::Join &msg, const std::shared_ptr<ClientConnection>& client);
 
+    void disconnect_client(const std::shared_ptr<ClientConnection>& client);
 private:
     boost::asio::ip::tcp::acceptor acceptor_;
-    std::vector<std::shared_ptr<ClientConnection>> client_connections_;
+    std::unordered_set<std::shared_ptr<ClientConnection>> client_connections_;
     std::unordered_map<player_id_t, std::shared_ptr<ClientConnection>> player_connections_;
     std::vector<ServerMessage::server_message_variant> messages_for_new_connection_;
     ServerMessage::Hello hello_message_;
@@ -98,7 +99,7 @@ private:
 class TCPConnection
         : public Connection {
 public:
-    TCPConnection(boost::asio::ip::tcp::socket socket);
+    explicit TCPConnection(boost::asio::ip::tcp::socket socket);
 
     void close() override;
 
@@ -109,6 +110,7 @@ protected:
     void do_read_message();
     void do_write_message();
     virtual void handle_messages_in_bufor() = 0;
+    virtual void handle_connection_error() = 0;
 };
 
 // Class for handling connection with server
@@ -126,6 +128,7 @@ private:
     Client &client_;
 
     void handle_messages_in_bufor() override;
+    void handle_connection_error() override;
 };
 
 class ClientConnection
@@ -141,12 +144,12 @@ public:
     ClientMessage::client_message_optional_variant get_latest_message();
     std::string get_address();
 
-
 private:
     Server &server_;
     ClientMessage::client_message_optional_variant last_message_;
 
     void handle_messages_in_bufor() override;
+    void handle_connection_error() override;
 };
 
 #endif //ROBOTS_CONNECTIONS_H

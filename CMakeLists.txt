@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.1)
 project(robots)
 
-set(CMAKE_C_STANDARD 20)
-set(CXX_STANDARD 20)
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wconversion -Werror -O2 -std=gnu++20")
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wconversion -Werror -O2 -std=gnu++20")
 
 find_package(Boost 1.74.0 COMPONENTS program_options system REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})

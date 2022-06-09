@@ -150,8 +150,9 @@ DrawMessage::draw_message_optional_variant ClientGameInfo::handle_turn(ServerMes
     }
 
     if (turn < msg.turn) {
+        uint16_t diff = msg.turn - turn;
         for (auto &it: bombs) {
-            it.second.timer -= (msg.turn - turn);
+            it.second.timer -= diff;
         }
     }
 
@@ -303,7 +304,7 @@ ServerGameInfo::handle_turn(std::unordered_map<player_id_t, ClientMessage::clien
 
 std::optional<ServerMessage::AcceptedPlayer>
 ServerGameInfo::handle_client_join_message(ClientMessage::Join &msg, std::string &&address) {
-    if (state != GameState::Lobby || players.size() > players_count) {
+    if (state != GameState::Lobby || players.size() >= players_count) {
         return std::nullopt;
     }
 
@@ -314,7 +315,7 @@ ServerGameInfo::handle_client_join_message(ClientMessage::Join &msg, std::string
     }
 
     Player new_player{msg.name, std::move(address)};
-    player_id_t new_player_id = players.size();
+    player_id_t new_player_id = static_cast<uint8_t>(players.size());
     players.emplace(new_player_id, PlayerInfo{new_player_id, new_player, Position{0, 0}, 0});
     return ServerMessage::AcceptedPlayer{new_player_id, new_player};
 }
@@ -405,8 +406,8 @@ void ServerGameInfo::handle_player_killed(PlayerInfo &player) {
 }
 
 Position ServerGameInfo::get_random_position() {
-    uint16_t x = random_engine_() % basic_info.size_x;
-    uint16_t y = random_engine_() % basic_info.size_y;
+    uint16_t x = static_cast<uint16_t>(random_engine_() % basic_info.size_x);
+    uint16_t y = static_cast<uint16_t>(random_engine_() % basic_info.size_y);
 
     return {x, y};
 }
