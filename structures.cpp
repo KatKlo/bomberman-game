@@ -13,7 +13,7 @@ DrawMessage::Lobby::Lobby(GameBasicInfo &info,
                           uint8_t playersCount,
                           uint16_t explosionRadius,
                           uint16_t bombTimer,
-                          std::unordered_map<player_id_t, PlayerInfo> &p) : server_name(info.server_name),
+                          std::map<player_id_t, PlayerInfo> &p) : server_name(info.server_name),
                                                                             players_count(playersCount),
                                                                             size_x(info.size_x),
                                                                             size_y(info.size_y),
@@ -28,25 +28,20 @@ DrawMessage::Lobby::Lobby(GameBasicInfo &info,
 
 DrawMessage::Game::Game(GameBasicInfo &info,
                         uint16_t turn,
-                        std::unordered_map<player_id_t, PlayerInfo> &players_info,
-                        std::unordered_map<bomb_id_t, Bomb> &bombs_positions,
-                        std::unordered_set<Position, Position::HashFunction> &blocks_positions,
-                        std::unordered_set<Position, Position::HashFunction> &explosions_positions) : server_name(
-        info.server_name),
-                                                                                                      size_x(info.size_x),
-                                                                                                      size_y(info.size_y),
-                                                                                                      game_length(
-                                                                                                              info.game_length),
-                                                                                                      turn(turn),
-                                                                                                      players(),
-                                                                                                      player_positions(),
-                                                                                                      blocks(blocks_positions.begin(),
-                                                                                                             blocks_positions.end()),
-                                                                                                      bombs(),
-                                                                                                      explosions(
-                                                                                                              explosions_positions.begin(),
-                                                                                                              explosions_positions.end()),
-                                                                                                      scores() {
+                        std::map<player_id_t, PlayerInfo> &players_info,
+                        std::map<bomb_id_t, Bomb> &bombs_positions,
+                        std::unordered_set<Position, Position::HashFunction> &blocks,
+                        std::unordered_set<Position, Position::HashFunction> &explosions) : server_name(info.server_name),
+                                                                                            size_x(info.size_x),
+                                                                                            size_y(info.size_y),
+                                                                                            game_length(info.game_length),
+                                                                                            turn(turn),
+                                                                                            players(),
+                                                                                            player_positions(),
+                                                                                            blocks(blocks.begin(), blocks.end()),
+                                                                                            bombs(),
+                                                                                            explosions( explosions.begin(), explosions.end()),
+                                                                                            scores() {
     for (auto &it: players_info) {
         players.emplace(it.first, it.second.player);
         player_positions.emplace(it.first, it.second.position);
@@ -86,7 +81,7 @@ ServerMessage::Hello::Hello(const std::string &serverName, uint8_t playersCount,
                                                                    explosion_radius(explosionRadius),
                                                                    bomb_timer(bombTimer) {}
 
-ServerMessage::GameStarted::GameStarted(const std::unordered_map<player_id_t, PlayerInfo> &players_info) {
+ServerMessage::GameStarted::GameStarted(const std::map<player_id_t, PlayerInfo> &players_info) {
     for (auto &it: players_info) {
         players.emplace(it.first, it.second.player);
     }
@@ -96,7 +91,7 @@ ServerMessage::GameStarted::GameStarted(const std::unordered_map<player_id_t, Pl
 
 ServerMessage::GameEnded::GameEnded(const std::unordered_map<player_id_t, score_t> &scores) : scores(scores) {}
 
-ServerMessage::GameEnded::GameEnded(const std::unordered_map<player_id_t, PlayerInfo> &players_info) {
+ServerMessage::GameEnded::GameEnded(const std::map<player_id_t, PlayerInfo> &players_info) {
     for (auto &it: players_info) {
         scores.emplace(it.first, it.second.score);
     }

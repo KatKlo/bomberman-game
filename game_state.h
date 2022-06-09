@@ -8,6 +8,7 @@
 #include <ostream>
 #include <unordered_set>
 #include "parameters.h"
+#include <random>
 
 enum GameState {
     NotConnected,
@@ -22,10 +23,10 @@ protected:
     uint16_t explosion_radius;
     uint16_t bomb_timer;
     uint16_t turn;
-    std::unordered_map<player_id_t, PlayerInfo> players;
-    std::unordered_map<bomb_id_t, Bomb> bombs;
+    std::map<player_id_t, PlayerInfo> players;
+    std::map<bomb_id_t, Bomb> bombs;
     std::unordered_set<Position, Position::HashFunction> blocks;
-    std::unordered_set<player_id_t> killed_players;
+    std::unordered_set<player_id_t> destroyed_robots;
 
     GameState state;
 
@@ -34,8 +35,12 @@ protected:
     GameInfo(ServerParameters &params);
 
     bool is_position_on_board(int32_t x, int32_t y) const;
-
+    bool is_block_on_position(Position &position);
+    std::vector<player_id_t> get_players_on_position(Position &position);
     void clean_after_game();
+
+    virtual void handle_explosion_for_position(int32_t x, int32_t y, bool &is_direction_ok) = 0;
+    void make_bomb_explosion(Position &bomb_position);
 };
 
 class ClientGameInfo : public GameInfo {
@@ -63,31 +68,45 @@ private:
     void handle_player_moved(Event::PlayerMovedEvent &event);
     void handle_block_placed(Event::BlockPlacedEvent &event);
 
-    void insert_explosion_if_possible(int32_t x, int32_t y, bool &is_direction_ok);
-    void add_explosions_for_bomb(Position &bomb_position);
+    void handle_explosion_for_position(int32_t x, int32_t y, bool &is_direction_ok) override;
 };
 
 class ServerGameInfo : public GameInfo {
 public:
+    using start_game_messages = std::pair<ServerMessage::GameStarted, ServerMessage::Turn>;
     explicit ServerGameInfo(ServerParameters &params);
 
     bool is_enough_players() const;
 
     bool is_end_of_game() const;
 
-    ServerMessage::GameStarted start_game();
+    start_game_messages start_game();
     ServerMessage::GameEnded end_game();
 
-    ServerMessage::server_message_variant handle_turn(std::unordered_map<player_id_t, ClientMessage::client_message_variant> &msgs);
+    ServerMessage::Turn handle_turn(std::unordered_map<player_id_t, ClientMessage::client_message_variant> &msgs);
     std::optional<ServerMessage::AcceptedPlayer> handle_client_join_message(ClientMessage::Join &msg, std::string &&address);
 
 private:
-    void handle_client_message_in_game(ClientMessage::client_message_variant &msg, player_id_t player_id);
+    uint16_t initial_blocks_;
+    std::minstd_rand random_engine_;
+    std::vector<Event::event_message_variant> events_;
+    std::unordered_set<Position, Position::HashFunction> destroyed_blocks_;
+    std::vector<Position> destroyed_blocks_in_explosion_;
+    std::vector<player_id_t> destroyed_robots_in_explosion_;
 
-    void handle_place_bomb(player_id_t player_id);
-    void handle_place_block(player_id_t player_id);
-    void handle_move(ClientMessage::Move &msg, player_id_t player_id);
+    void initialize_board();
 
+    void handle_client_message_in_game(ClientMessage::client_message_variant &msg, PlayerInfo &player);
+
+    void handle_place_bomb(Position &bomb_position);
+    void handle_place_block(Position &block_position);
+    void handle_move(ClientMessage::Move &msg, PlayerInfo &player);
+
+    void handle_bomb_explosion(bomb_id_t bomb_id, Position &bomb_position);
+    void handle_player_killed(PlayerInfo &player);
+
+    Position get_random_position();
+    void handle_explosion_for_position(int32_t x, int32_t y, bool &is_direction_ok) override;
 };
 
 #endif //ROBOTS_GAME_STATE_H

@@ -294,23 +294,22 @@ void Server::do_accept() {
             });
 }
 
-void Server::send_message_to_all(ServerMessage::server_message_variant &msg) {
+void Server::send_message_to_all(ServerMessage::server_message_variant &&msg) {
     for (auto &connection : client_connections_) {
         connection->send(msg);
     }
 }
 
-void Server::send_and_save_message_to_all(ServerMessage::server_message_variant &msg) {
-    send_message_to_all(msg);
-    messages_for_new_connection_.emplace_back(std::move(msg));
+void Server::send_and_save_message_to_all(ServerMessage::server_message_variant &&msg) {
+    messages_for_new_connection_.emplace_back(msg);
+    send_message_to_all(std::move(msg));
 }
 
 void Server::handle_join_message(ClientMessage::Join &msg, std::shared_ptr<ClientConnection> client) {
     std::optional<ServerMessage::AcceptedPlayer> sth = gameInfo_.handle_client_join_message(msg, client->get_address());
     if (sth.has_value()) {
         player_connections_.emplace(sth.value().id, std::move(client));
-        ServerMessage::server_message_variant sth2 = sth.value();
-        send_and_save_message_to_all(sth2);
+        send_and_save_message_to_all(std::move(sth.value()));
 
         if (gameInfo_.is_enough_players()) {
             play_game();
@@ -320,13 +319,11 @@ void Server::handle_join_message(ClientMessage::Join &msg, std::shared_ptr<Clien
 
 void Server::play_game() {
     messages_for_new_connection_.clear();
-    ServerMessage::server_message_variant sth = gameInfo_.start_game();
-    send_and_save_message_to_all(sth);
+    ServerGameInfo::start_game_messages sth3 = gameInfo_.start_game();
+    send_and_save_message_to_all(sth3.first);
+    send_and_save_message_to_all(sth3.second);
 
     std::unordered_map<player_id_t, ClientMessage::client_message_variant> messages_to_handle;
-
-    sth = gameInfo_.handle_turn(messages_to_handle);
-    send_and_save_message_to_all(sth);
 
     while (!gameInfo_.is_end_of_game()) {
         timer_.expires_from_now(timer_interval_);
@@ -339,13 +336,11 @@ void Server::play_game() {
             }
         }
 
-        sth = gameInfo_.handle_turn(messages_to_handle);
-        send_message_to_all(sth);
+        send_and_save_message_to_all(gameInfo_.handle_turn(messages_to_handle));
         messages_to_handle.clear();
     }
 
-    sth = gameInfo_.end_game();
     messages_for_new_connection_.clear();
-    send_message_to_all(sth);
+    send_message_to_all(gameInfo_.end_game());
 }
 

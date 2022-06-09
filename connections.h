@@ -51,8 +51,8 @@ private:
     boost::asio::chrono::milliseconds timer_interval_;
 
     void do_accept();
-    void send_message_to_all(ServerMessage::server_message_variant &msg);
-    void send_and_save_message_to_all(ServerMessage::server_message_variant &msg);
+    void send_message_to_all(ServerMessage::server_message_variant &&msg);
+    void send_and_save_message_to_all(ServerMessage::server_message_variant &&msg);
     void play_game();
 };
 

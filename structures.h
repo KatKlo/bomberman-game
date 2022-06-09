@@ -46,6 +46,7 @@ enum Direction : uint8_t {
 };
 
 struct PlayerInfo {
+    player_id_t id;
     Player player;
     Position position{};
     score_t score{};
@@ -134,7 +135,7 @@ namespace DrawMessage {
         Lobby(GameBasicInfo &info, uint8_t playersCount,
               uint16_t explosionRadius,
               uint16_t bombTimer,
-              std::unordered_map<player_id_t, PlayerInfo> &p);
+              std::map<player_id_t, PlayerInfo> &p);
 
         std::string server_name;
         uint8_t players_count;
@@ -149,9 +150,9 @@ namespace DrawMessage {
     struct Game {
         Game(GameBasicInfo &info,
              uint16_t turn,
-             std::unordered_map<player_id_t, PlayerInfo> &players_info,
-             std::unordered_map<bomb_id_t, Bomb> &bombs_positions,
-             std::unordered_set<Position, Position::HashFunction> &blocks_positions,
+             std::map<player_id_t, PlayerInfo> &players_info,
+             std::map<bomb_id_t, Bomb> &bombs_positions,
+             std::unordered_set<Position, Position::HashFunction> &blocks,
              std::unordered_set<Position, Position::HashFunction> &explosions);
 
         std::string server_name;
@@ -201,7 +202,7 @@ namespace ServerMessage {
     };
 
     struct GameStarted {
-        GameStarted(const std::unordered_map<player_id_t, PlayerInfo> &players_info);
+        GameStarted(const std::map<player_id_t, PlayerInfo> &players_info);
         GameStarted(const std::unordered_map<player_id_t, Player> &players);
 
         std::unordered_map<player_id_t, Player> players;
@@ -214,7 +215,7 @@ namespace ServerMessage {
 
     struct GameEnded {
         GameEnded(const std::unordered_map<player_id_t, score_t> &scores);
-        GameEnded(const std::unordered_map<player_id_t, PlayerInfo> &players_info);
+        GameEnded(const std::map<player_id_t, PlayerInfo> &players_info);
 
         std::unordered_map<player_id_t, score_t> scores;
     };
