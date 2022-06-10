@@ -1,7 +1,7 @@
 #include "parameters.h"
 #include "logger.h"
 #include <boost/asio.hpp>
-#include "connections.h"
+#include "connections/client_connections.h"
 
 #include <iostream>
 

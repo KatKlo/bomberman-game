@@ -1,6 +1,6 @@
 #include "parameters.h"
 #include "logger.h"
-#include "connections.h"
+#include "connections/server_connections.h"
 #include <boost/asio.hpp>
 
 #include <iostream>
