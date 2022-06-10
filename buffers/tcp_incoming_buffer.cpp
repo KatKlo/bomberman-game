@@ -1,17 +1,19 @@
 #include "tcp_incoming_buffer.h"
 
-void TcpIncomingBuffer::add_packet(std::vector<uint8_t> &data, Buffer::buffer_size_t size) {
+using namespace std;
+
+void TcpIncomingBuffer::add_packet(vector<uint8_t> &data, Buffer::buffer_size_t size) {
     add_to_buffer(data, size);
 }
 
 void TcpIncomingBuffer::clean_after_correct_read() {
-    std::copy(&buffer_[read_index], &buffer_[size_], &buffer_[0]);
+    copy(&buffer_[read_index], &buffer_[size_], &buffer_[0]);
     size_ -= read_index;
     read_index = 0;
 }
 
-ServerMessage::server_message_variant TcpIncomingBuffer::read_server_message() {
-    ServerMessage::server_message_variant result;
+ServerMessage::server_message TcpIncomingBuffer::read_server_message() {
+    ServerMessage::server_message result;
     read_index = 0;
     switch (read_uint8_t()) {
         case ServerMessage::HELLO: {
@@ -35,7 +37,7 @@ ServerMessage::server_message_variant TcpIncomingBuffer::read_server_message() {
             break;
         }
         default: {
-            throw std::invalid_argument("bad server message type");
+            throw invalid_argument("bad server message type");
         }
     }
 
@@ -43,8 +45,8 @@ ServerMessage::server_message_variant TcpIncomingBuffer::read_server_message() {
     return result;
 }
 
-ClientMessage::client_message_variant TcpIncomingBuffer::read_client_message() {
-    ClientMessage::client_message_variant result;
+ClientMessage::client_message TcpIncomingBuffer::read_client_message() {
+    ClientMessage::client_message result;
     read_index = 0;
     switch (read_uint8_t()) {
         case ClientMessage::JOIN: {
@@ -64,7 +66,7 @@ ClientMessage::client_message_variant TcpIncomingBuffer::read_client_message() {
             break;
         }
         default: {
-            throw std::invalid_argument("bad client message type");
+            throw invalid_argument("bad client message type");
         }
     }
 
@@ -73,7 +75,7 @@ ClientMessage::client_message_variant TcpIncomingBuffer::read_client_message() {
 }
 
 ServerMessage::Hello TcpIncomingBuffer::read_server_hello_message() {
-    std::string server_name = read_string();
+    string server_name = read_string();
     uint8_t players_count = read_uint8_t();
     uint16_t size_x = read_uint16_t();
     uint16_t size_y = read_uint16_t();
@@ -93,24 +95,27 @@ ServerMessage::AcceptedPlayer TcpIncomingBuffer::read_server_accepted_player_mes
 }
 
 ServerMessage::GameStarted TcpIncomingBuffer::read_server_game_started_message() {
-    std::unordered_map<player_id_t, Player> players = read_players_map();
+    unordered_map<player_id_t, Player> players = read_players_map();
 
     return ServerMessage::GameStarted{players};
 }
 
 ServerMessage::Turn TcpIncomingBuffer::read_server_turn_message() {
     uint16_t turn = read_uint16_t();
-    std::vector<Event::event_message_variant> events = read_events_vector();
+    vector<Event::event_message> events = read_events_vector();
+    
     return ServerMessage::Turn{turn, events};
 }
 
 ServerMessage::GameEnded TcpIncomingBuffer::read_server_game_ended_message() {
-    std::unordered_map<player_id_t, score_t> scores = read_player_scores_map();
+    unordered_map<player_id_t, score_t> scores = read_player_scores_map();
+    
     return ServerMessage::GameEnded{scores};
 }
 
 ClientMessage::Join TcpIncomingBuffer::read_client_join_message(){
-    std::string name = read_string();
+    string name = read_string();
+    
     return ClientMessage::Join{name};
 }
 
@@ -124,8 +129,8 @@ ClientMessage::PlaceBlock TcpIncomingBuffer::read_client_place_block_message(){
 
 ClientMessage::Move TcpIncomingBuffer::read_client_move_message(){
     uint8_t direction_number = read_uint8_t();
+    
     return ClientMessage::Move{Direction{direction_number}};
 }
 
 TcpIncomingBuffer::TcpIncomingBuffer() : IncomingBuffer() {}
-

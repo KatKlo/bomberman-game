@@ -1,14 +1,16 @@
 #include "incoming_buffer.h"
 
-void IncomingBuffer::add_to_buffer(std::vector<uint8_t> &data, buffer_size_t size) {
+using namespace std;
+
+void IncomingBuffer::add_to_buffer(vector<uint8_t> &data, buffer_size_t size) {
     resize_if_needed(size + size_);
-    std::copy(&data[0], &data[size], &buffer_[size_]);
+    copy(&data[0], &data[size], &buffer_[size_]);
     size_ += size;
 }
 
 void IncomingBuffer::check_size(Buffer::buffer_size_t needed_size) {
     if (needed_size > size_) {
-        throw std::length_error("message to short");
+        throw length_error("message to short");
     }
 }
 
@@ -33,10 +35,10 @@ uint32_t IncomingBuffer::read_uint32_t() {
     return be32toh(result);
 }
 
-std::string IncomingBuffer::read_string() {
+string IncomingBuffer::read_string() {
     uint8_t str_length = read_uint8_t();
     check_size(read_index + str_length);
-    std::string result((char *) &buffer_[read_index], str_length);
+    string result((char *) &buffer_[read_index], str_length);
     read_index += str_length;
     return result;
 }
@@ -83,7 +85,7 @@ Event::BlockPlacedEvent IncomingBuffer::read_block_placed_event() {
     return Event::BlockPlacedEvent{position};
 }
 
-Event::event_message_variant IncomingBuffer::read_event() {
+Event::event_message IncomingBuffer::read_event() {
     switch (read_uint8_t()) {
         case Event::BOMB_PLACED: {
             return read_bomb_placed_event();
@@ -98,14 +100,14 @@ Event::event_message_variant IncomingBuffer::read_event() {
             return read_block_placed_event();
         }
         default: {
-            throw std::invalid_argument("bad event number");
+            throw invalid_argument("bad event number");
         }
     }
 }
 
-std::vector<Event::event_message_variant> IncomingBuffer::read_events_vector() {
+vector<Event::event_message> IncomingBuffer::read_events_vector() {
     auto vec_size = read_uint32_t();
-    std::vector<Event::event_message_variant> vector;
+    vector<Event::event_message> vector;
 
     for (size_t i = 0; i < vec_size; i++) {
         auto event = read_event();
@@ -115,9 +117,9 @@ std::vector<Event::event_message_variant> IncomingBuffer::read_events_vector() {
     return vector;
 }
 
-std::vector<player_id_t> IncomingBuffer::read_players_id_vector() {
+vector<player_id_t> IncomingBuffer::read_players_id_vector() {
     auto vec_size = read_uint32_t();
-    std::vector<player_id_t> vector;
+    vector<player_id_t> vector;
 
     for (size_t i = 0; i < vec_size; i++) {
         auto player_id = read_uint8_t();
@@ -127,9 +129,9 @@ std::vector<player_id_t> IncomingBuffer::read_players_id_vector() {
     return vector;
 }
 
-std::vector<Position> IncomingBuffer::read_positions_vector() {
+vector<Position> IncomingBuffer::read_positions_vector() {
     auto vec_size = read_uint32_t();
-    std::vector<Position> vector;
+    vector<Position> vector;
 
     for (size_t i = 0; i < vec_size; i++) {
         auto position = read_position();
@@ -139,9 +141,9 @@ std::vector<Position> IncomingBuffer::read_positions_vector() {
     return vector;
 }
 
-std::unordered_map<player_id_t, Player> IncomingBuffer::read_players_map() {
+unordered_map<player_id_t, Player> IncomingBuffer::read_players_map() {
     auto map_size = read_uint32_t();
-    std::unordered_map<player_id_t, Player> map;
+    unordered_map<player_id_t, Player> map;
 
     for (size_t i = 0; i < map_size; i++) {
         auto player_id = read_uint8_t();
@@ -152,9 +154,9 @@ std::unordered_map<player_id_t, Player> IncomingBuffer::read_players_map() {
     return map;
 }
 
-std::unordered_map<player_id_t, score_t> IncomingBuffer::read_player_scores_map() {
+unordered_map<player_id_t, score_t> IncomingBuffer::read_player_scores_map() {
     auto map_size = read_uint32_t();
-    std::unordered_map<player_id_t, score_t> map;
+    unordered_map<player_id_t, score_t> map;
 
     for (size_t i = 0; i < map_size; i++) {
         auto player_id = read_uint8_t();

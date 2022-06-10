@@ -10,9 +10,9 @@
 // supposed to keep at most only one message at the time
 class OutgoingBuffer : public Buffer {
 public:
-    explicit OutgoingBuffer(DrawMessage::draw_message_variant &msg);
-    explicit OutgoingBuffer(ClientMessage::client_message_variant &msg);
-    explicit OutgoingBuffer(ServerMessage::server_message_variant &msg);
+    explicit OutgoingBuffer(DrawMessage::draw_message &msg);
+    explicit OutgoingBuffer(ClientMessage::client_message &msg);
+    explicit OutgoingBuffer(ServerMessage::server_message &msg);
 
     buffer_size_t size();
     uint8_t *get_buffer();
@@ -34,12 +34,12 @@ protected:
     void write_player_moved_event(Event::PlayerMovedEvent &event);
     void write_block_placed_event(Event::BlockPlacedEvent &event);
 
-    void write_event(Event::event_message_variant &event);
+    void write_event(Event::event_message &event);
 
     void write_players_id_vector(std::vector<player_id_t> &player_ids);
     void write_positions_vector(std::vector<Position> &positions);
     void write_bombs_vector(std::vector<Bomb> &bombs);
-    void write_events_vector(std::vector<Event::event_message_variant> &events);
+    void write_events_vector(std::vector<Event::event_message> &events);
 
     void write_players_map(std::unordered_map<player_id_t, Player> &players);
     void write_player_positions_map(std::unordered_map<player_id_t, Position> &player_positions);

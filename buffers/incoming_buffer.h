@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include "buffer.h"
 
-
 // Class for storing and parsing incoming messages
 class IncomingBuffer : public Buffer {
 public:
@@ -31,9 +30,9 @@ protected:
     Event::PlayerMovedEvent read_player_moved_event();
     Event::BlockPlacedEvent read_block_placed_event();
 
-    Event::event_message_variant read_event();
+    Event::event_message read_event();
 
-    std::vector<Event::event_message_variant> read_events_vector();
+    std::vector<Event::event_message> read_events_vector();
     std::vector<player_id_t> read_players_id_vector();
     std::vector<Position> read_positions_vector();
     std::unordered_map<player_id_t, Player> read_players_map();

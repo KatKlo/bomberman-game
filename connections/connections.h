@@ -3,8 +3,8 @@
 
 #include "../buffers/outgoing_buffer.h"
 #include "../buffers/tcp_incoming_buffer.h"
-#include <deque>
 #include <boost/asio.hpp>
+#include <deque>
 
 // Superclass for connections with gui and server
 class Connection {
@@ -19,12 +19,12 @@ protected:
 };
 
 // Class for handling connection with server
-class TCPConnection
-        : public Connection {
+class TCPConnection : public Connection {
 public:
     explicit TCPConnection(boost::asio::ip::tcp::socket socket);
 
     void close() override;
+
     std::string get_address();
     void set_proper_address();
 
@@ -39,6 +39,5 @@ protected:
     virtual void handle_messages_in_bufor() = 0;
     virtual void handle_connection_error() = 0;
 };
-
 
 #endif //ROBOTS_CONNECTIONS_H

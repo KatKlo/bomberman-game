@@ -10,7 +10,7 @@ class UdpIncomingBuffer : public IncomingBuffer {
 public:
     UdpIncomingBuffer();
 
-    InputMessage::input_message_variant read_input_message();
+    InputMessage::input_message read_input_message();
     void add_packet(std::vector<uint8_t> &data, buffer_size_t size) override;
 
 private:

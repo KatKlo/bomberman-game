@@ -1,5 +1,7 @@
 #include "outgoing_buffer.h"
 
+using namespace std;
+
 Buffer::buffer_size_t OutgoingBuffer::size() {
     return size_;
 }
@@ -26,10 +28,10 @@ void OutgoingBuffer::write_uint32_t(uint32_t number) {
     write_index += sizeof(uint32_t);
 }
 
-void OutgoingBuffer::write_string(std::string &string) {
+void OutgoingBuffer::write_string(string &string) {
     write_uint8_t(static_cast<uint8_t>(string.length()));
     resize_if_needed(write_index + string.length());
-    std::copy(string.c_str(), string.c_str() + string.length(), &buffer_[write_index]);
+    copy(string.c_str(), string.c_str() + string.length(), &buffer_[write_index]);
     write_index += string.length();
 }
 
@@ -72,59 +74,59 @@ void OutgoingBuffer::write_block_placed_event(Event::BlockPlacedEvent &event) {
     write_position(event.position);
 }
 
-void OutgoingBuffer::write_event(Event::event_message_variant &event) {
+void OutgoingBuffer::write_event(Event::event_message &event) {
     switch (event.index()) {
         case Event::BOMB_PLACED: {
-            write_bomb_placed_event(std::get<Event::BombPlacedEvent>(event));
+            write_bomb_placed_event(get<Event::BombPlacedEvent>(event));
             break;
         }
         case Event::BOMB_EXPLODED: {
-            write_bomb_exploded_event(std::get<Event::BombExplodedEvent>(event));
+            write_bomb_exploded_event(get<Event::BombExplodedEvent>(event));
             break;
         }
         case Event::PLAYER_MOVED: {
-            write_player_moved_event(std::get<Event::PlayerMovedEvent>(event));
+            write_player_moved_event(get<Event::PlayerMovedEvent>(event));
             break;
         }
         case Event::BLOCK_PLACED: {
-            write_block_placed_event(std::get<Event::BlockPlacedEvent>(event));
+            write_block_placed_event(get<Event::BlockPlacedEvent>(event));
             break;
         }
         default: {
-            throw std::invalid_argument("bad event number");
+            throw invalid_argument("bad event number");
         }
     }
 }
 
-void OutgoingBuffer::write_players_id_vector(std::vector<player_id_t> &player_ids) {
+void OutgoingBuffer::write_players_id_vector(vector<player_id_t> &player_ids) {
     write_uint32_t(static_cast<uint32_t>(player_ids.size()));
     for (auto &player_id : player_ids) {
         write_uint8_t(player_id);
     }
 }
 
-void OutgoingBuffer::write_positions_vector(std::vector<Position> &positions) {
+void OutgoingBuffer::write_positions_vector(vector<Position> &positions) {
     write_uint32_t(static_cast<uint32_t>(positions.size()));
     for (auto &it: positions) {
         write_position(it);
     }
 }
 
-void OutgoingBuffer::write_bombs_vector(std::vector<Bomb> &bombs) {
+void OutgoingBuffer::write_bombs_vector(vector<Bomb> &bombs) {
     write_uint32_t(static_cast<uint32_t>(bombs.size()));
     for (auto &it: bombs) {
         write_bomb(it);
     }
 }
 
-void OutgoingBuffer::write_events_vector(std::vector<Event::event_message_variant> &events) {
+void OutgoingBuffer::write_events_vector(vector<Event::event_message> &events) {
     write_uint32_t(static_cast<uint32_t>(events.size()));
     for (auto &it: events) {
         write_event(it);
     }
 }
 
-void OutgoingBuffer::write_players_map(std::unordered_map<player_id_t, Player> &players) {
+void OutgoingBuffer::write_players_map(unordered_map<player_id_t, Player> &players) {
     write_uint32_t(static_cast<uint32_t>(players.size()));
     for (auto &it: players) {
         write_uint8_t(it.first);
@@ -132,7 +134,7 @@ void OutgoingBuffer::write_players_map(std::unordered_map<player_id_t, Player> &
     }
 }
 
-void OutgoingBuffer::write_player_positions_map(std::unordered_map<player_id_t, Position> &player_positions) {
+void OutgoingBuffer::write_player_positions_map(unordered_map<player_id_t, Position> &player_positions) {
     write_uint32_t(static_cast<uint32_t>(player_positions.size()));
     for (auto &it: player_positions) {
         write_uint8_t(it.first);
@@ -140,7 +142,7 @@ void OutgoingBuffer::write_player_positions_map(std::unordered_map<player_id_t, 
     }
 }
 
-void OutgoingBuffer::write_player_scores_map(std::unordered_map<player_id_t, score_t> &scores) {
+void OutgoingBuffer::write_player_scores_map(unordered_map<player_id_t, score_t> &scores) {
     write_uint32_t(static_cast<uint32_t>(scores.size()));
     for (auto &it: scores) {
         write_uint8_t(it.first);
@@ -168,9 +170,9 @@ void OutgoingBuffer::write_client_move_message(ClientMessage::Move &msg) {
 
 void OutgoingBuffer::write_draw_lobby_message(DrawMessage::Lobby &msg) {
     write_uint8_t(DrawMessage::LOBBY);
-    write_string(msg.server_name);
-    write_uint8_t(msg.players_count);
-    write_uint16_t(msg.size_x);
+    write_string(msg.server_name_);
+    write_uint8_t(msg.players_count_);
+    write_uint16_t(msg.size_x_);
     write_uint16_t(msg.size_y);
     write_uint16_t(msg.game_length);
     write_uint16_t(msg.explosion_radius);
@@ -188,7 +190,7 @@ void OutgoingBuffer::write_draw_game_message(DrawMessage::Game &msg) {
     write_players_map(msg.players);
     write_player_positions_map(msg.player_positions);
     write_positions_vector(msg.blocks);
-    write_bombs_vector(msg.bombs);
+    write_bombs_vector(msg.bombs_);
     write_positions_vector(msg.explosions);
     write_player_scores_map(msg.scores);
 }
@@ -228,10 +230,10 @@ void OutgoingBuffer::write_server_game_ended_message(ServerMessage::GameEnded &m
 }
 
 
-OutgoingBuffer::OutgoingBuffer(ClientMessage::client_message_variant &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
+OutgoingBuffer::OutgoingBuffer(ClientMessage::client_message &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
     switch (msg.index()) {
         case ClientMessage::JOIN:
-            write_client_join_message(std::get<ClientMessage::Join>(msg));
+            write_client_join_message(get<ClientMessage::Join>(msg));
             break;
         case ClientMessage::PLACE_BOMB:
             write_client_place_bomb_message();
@@ -240,42 +242,42 @@ OutgoingBuffer::OutgoingBuffer(ClientMessage::client_message_variant &msg) : Buf
             write_client_place_block_message();
             break;
         case ClientMessage::MOVE:
-            write_client_move_message(std::get<ClientMessage::Move>(msg));
+            write_client_move_message(get<ClientMessage::Move>(msg));
             break;
     }
 
     size_ = write_index;
 }
 
-OutgoingBuffer::OutgoingBuffer(DrawMessage::draw_message_variant &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
+OutgoingBuffer::OutgoingBuffer(DrawMessage::draw_message &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
     switch (msg.index()) {
         case DrawMessage::LOBBY:
-            write_draw_lobby_message(std::get<DrawMessage::Lobby>(msg));
+            write_draw_lobby_message(get<DrawMessage::Lobby>(msg));
             break;
         case DrawMessage::GAME:
-            write_draw_game_message(std::get<DrawMessage::Game>(msg));
+            write_draw_game_message(get<DrawMessage::Game>(msg));
             break;
     }
 
     size_ = write_index;
 }
 
-OutgoingBuffer::OutgoingBuffer(ServerMessage::server_message_variant &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
+OutgoingBuffer::OutgoingBuffer(ServerMessage::server_message &msg) : Buffer(MAX_PACKET_LENGTH), write_index(0) {
     switch (msg.index()) {
         case ServerMessage::HELLO:
-            write_server_hello_message(std::get<ServerMessage::Hello>(msg));
+            write_server_hello_message(get<ServerMessage::Hello>(msg));
             break;
         case ServerMessage::ACCEPTED_PLAYER:
-            write_server_accepted_player_message(std::get<ServerMessage::AcceptedPlayer>(msg));
+            write_server_accepted_player_message(get<ServerMessage::AcceptedPlayer>(msg));
             break;
         case ServerMessage::GAME_STARTED:
-            write_server_game_started_message(std::get<ServerMessage::GameStarted>(msg));
+            write_server_game_started_message(get<ServerMessage::GameStarted>(msg));
             break;
         case ServerMessage::TURN:
-            write_server_turn_message(std::get<ServerMessage::Turn>(msg));
+            write_server_turn_message(get<ServerMessage::Turn>(msg));
             break;
         case ServerMessage::GAME_ENDED:
-            write_server_game_ended_message(std::get<ServerMessage::GameEnded>(msg));
+            write_server_game_ended_message(get<ServerMessage::GameEnded>(msg));
             break;
     }
 

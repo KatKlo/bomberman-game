@@ -5,13 +5,10 @@
 #include "../parameters.h"
 #include "../structures.h"
 #include "../game_managers/client_game_info.h"
-#include "connections.h"
-#include "../buffers/outgoing_buffer.h"
-#include "../buffers/tcp_incoming_buffer.h"
 #include "../buffers/udp_incoming_buffer.h"
+#include "connections.h"
 
 class GuiConnection;
-
 class ServerConnection;
 
 // Class for handling receiving, handling and sending proper messages
@@ -21,9 +18,8 @@ public:
 
     virtual ~Client();
 
-    void handle_input_message(InputMessage::input_message_variant &&msg);
-
-    void handle_server_message(ServerMessage::server_message_variant &&msg);
+    void handle_input_message(InputMessage::input_message &&msg);
+    void handle_server_message(ServerMessage::server_message &&msg);
 
 private:
     std::shared_ptr<GuiConnection> gui_connection_;
@@ -32,17 +28,14 @@ private:
 };
 
 // Class for handling connection with gui
-class GuiConnection
-        : public Connection {
+class GuiConnection : public Connection {
 public:
-    GuiConnection(boost::asio::io_context &io_context,
-                  Address &&gui_address,
-                  uint16_t port,
-                  Client &client);
+    GuiConnection(boost::asio::io_context &io_context, Address &&gui_address,
+                  uint16_t port, Client &client);
 
     void close() override;
 
-    void send(DrawMessage::draw_message_variant &msg);
+    void send(DrawMessage::draw_message &msg);
 
 private:
     Client &client_;
@@ -55,15 +48,12 @@ private:
 };
 
 // Class for handling connection with server
-class ServerConnection
-        : public TCPConnection {
+class ServerConnection : public TCPConnection {
 public:
     ServerConnection(boost::asio::io_context &io_context,
-                     Address &&server_address,
-                     Client &client);
+                     Address &&server_address, Client &client);
 
-    void send(ClientMessage::client_message_variant &msg);
-
+    void send(ClientMessage::client_message &msg);
 
 private:
     Client &client_;

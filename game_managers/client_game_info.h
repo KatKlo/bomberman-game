@@ -1,35 +1,31 @@
 #ifndef ROBOTS_CLIENT_GAME_INFO_H
 #define ROBOTS_CLIENT_GAME_INFO_H
 
+#include "../structures.h"
 #include "game_info.h"
-#include <cstdint>
-#include <memory>
-#include <mutex>
-#include <ostream>
+#include <string>
 #include <unordered_set>
-#include <random>
-
 
 class ClientGameInfo : public GameInfo {
 public:
     explicit ClientGameInfo(std::string player_name);
 
-    DrawMessage::draw_message_optional_variant handle_server_message(ServerMessage::server_message_variant &msg);
-
-    ClientMessage::client_message_optional_variant handle_GUI_message(InputMessage::input_message_variant &msg);
+    DrawMessage::draw_message_optional handle_server_message(ServerMessage::server_message &msg);
+    ClientMessage::client_message_optional handle_GUI_message(InputMessage::input_message &msg);
 
 private:
     std::string player_name_;
-    std::unordered_set<Position, Position::HashFunction> explosions;
+    std::unordered_set<Position, Position::Hash> explosions;
 
-    DrawMessage::draw_message_optional_variant generate_draw_message();
-    DrawMessage::draw_message_optional_variant handle_hello(ServerMessage::Hello &msg);
-    DrawMessage::draw_message_optional_variant handle_accepted_player(ServerMessage::AcceptedPlayer &msg);
-    DrawMessage::draw_message_optional_variant handle_game_started(ServerMessage::GameStarted &msg);
-    DrawMessage::draw_message_optional_variant handle_turn(ServerMessage::Turn &msg);
-    DrawMessage::draw_message_optional_variant handle_game_ended();
+    DrawMessage::draw_message_optional generate_draw_message();
 
-    void handle_event(Event::event_message_variant &event);
+    DrawMessage::draw_message_optional handle_hello(ServerMessage::Hello &msg);
+    DrawMessage::draw_message_optional handle_accepted_player(ServerMessage::AcceptedPlayer &msg);
+    DrawMessage::draw_message_optional handle_game_started(ServerMessage::GameStarted &msg);
+    DrawMessage::draw_message_optional handle_turn(ServerMessage::Turn &msg);
+    DrawMessage::draw_message_optional handle_game_ended();
+
+    void handle_event(Event::event_message &event);
     void handle_bomb_placed(Event::BombPlacedEvent &event);
     void handle_bomb_exploded(Event::BombExplodedEvent &event);
     void handle_player_moved(Event::PlayerMovedEvent &event);

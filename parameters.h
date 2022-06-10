@@ -4,34 +4,20 @@
 #include <boost/program_options.hpp>
 #include <string>
 
-// Class for storing address given as parameter
-struct Address {
-    static constexpr uint16_t MIN_PORT = 0;
-    static constexpr uint16_t MAX_PORT = 65535;
-
-    std::string host;
-    std::string port;
-
-    friend std::istream &operator>>(std::istream &in, Address &adr);
-
-    friend std::ostream &operator<<(std::ostream &out, const Address &adr);
-
-    static bool validate_port_number(std::string &number_str);
-};
+struct Address;
 
 class Parameters {
 public:
-    Parameters();
-
     // Result
     //  - TRUE if all parameters are correct and there's no help option
     //  - FALSE if there's help option
-    //  - throws exception if any parameter is incorrect or there's help option
+    //  - throws exception if any parameter is incorrect and there's help option
     bool read_program_arguments(int argc, char *argv[]);
 protected:
     boost::program_options::options_description opt_description_;
     boost::program_options::variables_map var_map_;
 
+    Parameters();
 private:
     virtual void initialize_options_description() = 0;
 };
@@ -71,11 +57,18 @@ private:
     void initialize_options_description() override;
 };
 
-struct u8_t {
-    uint8_t value;
+// Class for storing address given as parameter
+struct Address {
+    static constexpr uint16_t MIN_PORT = 0;
+    static constexpr uint16_t MAX_PORT = 65535;
 
-    friend std::istream& operator>>(std::istream& in, u8_t& u8);
-    friend std::ostream& operator<<(std::ostream& out, const u8_t& u8);
+    std::string host;
+    std::string port;
+
+    friend std::istream &operator>>(std::istream &in, Address &adr);
+    friend std::ostream &operator<<(std::ostream &out, const Address &adr);
+
+    static bool validate_port_number(std::string &number_str);
 };
 
 #endif //ROBOTS_PARAMETERS_H

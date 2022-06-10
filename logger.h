@@ -1,7 +1,6 @@
 #ifndef ROBOTS_LOGGER_H
 #define ROBOTS_LOGGER_H
 
-#include "string"
 #include <iostream>
 
 class Logger {

@@ -20,7 +20,6 @@ set(COMMON
 
 set(BUFFERS
         buffers/buffer.h
-        buffers/buffer.cpp
         buffers/incoming_buffer.cpp
         buffers/incoming_buffer.h
         buffers/outgoing_buffer.cpp
@@ -55,7 +54,6 @@ set(CLIENT
         robots-client.cpp
         ${COMMON}
         ${BUFFERS}
-        ${UDP_BUFFER}
         ${CLIENT_GAME_INFO}
         ${CLIENT_CONNECTIONS}
         )
@@ -67,7 +65,6 @@ set(SERVER
         ${SERVER_GAME_INFO}
         ${SERVER_CONNECTIONS}
         )
-
 
 add_executable(robots-client ${CLIENT})
 add_executable(robots-server ${SERVER})
